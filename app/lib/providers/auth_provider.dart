@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:omi/backend/http/api/apps.dart' as apps_api;
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
+import 'package:omi/local/local_auth_state.dart'; // ── LOCAL ONLY ──
 import 'package:omi/app_globals.dart';
 import 'package:omi/providers/base_provider.dart';
 import 'package:omi/services/auth_service.dart';
@@ -75,7 +76,10 @@ class AuthenticationProvider extends BaseProvider {
   }
 
   bool isSignedIn() {
-    return _auth.currentUser != null && !_auth.currentUser!.isAnonymous;
+    if (_auth.currentUser != null && !_auth.currentUser!.isAnonymous) return true;
+    // ── LOCAL ONLY — local JWT session ──
+    if (Env.localAuthEnabled) return LocalAuthState.isSignedIn;
+    return false;
   }
 
   void setLoading(bool value) {
