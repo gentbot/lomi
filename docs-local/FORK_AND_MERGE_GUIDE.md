@@ -158,9 +158,15 @@ cp    "$OLD_REPO/backend/database/vector_db_qdrant.py"   ./backend/database/vect
 cp    "$OLD_REPO/backend/database/vector_db_base.py"     ./backend/database/vector_db_base.py
 
 cp    "$OLD_REPO/backend/utils/llm/post_process.py"  ./backend/utils/llm/post_process.py
+cp    "$OLD_REPO/backend/utils/llm/router.py"        ./backend/utils/llm/router.py
 # Copy the entire embeddings/ directory — includes local_embeddings.py, openai_embeddings.py,
 # router.py (provider dispatcher), and __init__.py. router.py overwrites upstream if present.
 cp -r "$OLD_REPO/backend/utils/embeddings"           ./backend/utils/embeddings
+# Local STT provider implementations (Whisper streaming + pre-recorded) and VAD
+cp -r "$OLD_REPO/backend/utils/stt/providers"        ./backend/utils/stt/providers
+cp    "$OLD_REPO/backend/utils/stt/local_vad.py"     ./backend/utils/stt/local_vad.py
+# WebSocket event broadcaster (replaces Pusher when EVENT_PROVIDER=websocket)
+cp -r "$OLD_REPO/backend/events"                     ./backend/events
 
 cp    "$OLD_REPO/backend/.gitignore"                 ./backend/.gitignore
 
@@ -258,6 +264,10 @@ Everything in these paths is safe by definition — upstream has no equivalent:
 - `backend/feature_flags.py` — local feature gating
 - `backend/providers.py` — local provider resolver
 - `backend/utils/llm/post_process.py` — local conversation post-processing pipeline
+- `backend/utils/llm/router.py` — LLM provider dispatcher (Ollama/OpenAI router)
+- `backend/utils/stt/providers/` — local STT provider implementations (Whisper streaming + pre-recorded)
+- `backend/utils/stt/local_vad.py` — local VAD implementation
+- `backend/events/` — WebSocket event broadcaster; replaces Pusher when `EVENT_PROVIDER=websocket`
 - `backend/utils/embeddings/local_embeddings.py` — sentence-transformers embeddings implementation
 - `backend/scripts/local_smoke.py` — end-to-end smoke test for the local provider stack
 - `backend/env.local.template` — local provider vars
