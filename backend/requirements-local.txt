@@ -1,0 +1,32 @@
+# Local-only mode dependencies (Python 3.11)
+#
+# Install alongside requirements.txt when running with the local provider stack:
+#   pip install -r requirements.txt -r requirements-local.txt
+#
+# Each entry maps to a *_PROVIDER setting documented in .env.template.
+
+# Vector DB — VECTOR_DB_PROVIDER=qdrant
+qdrant-client>=1.9,<2
+
+# Embeddings — EMBEDDINGS_PROVIDER=local
+sentence-transformers>=2.7,<3
+
+# Speech-to-text — STT_PROVIDER=local
+faster-whisper>=1.0,<2
+
+# SQL persistence — DB_PROVIDER=sqlite
+SQLAlchemy>=2.0,<3
+
+# Local JWT auth — AUTH_PROVIDER=local
+PyJWT>=2.8,<3
+
+# Pinned to keep numpy 1.x for torch ABI compatibility.
+numpy>=1.26,<2
+
+# HTTP client used by the Ollama provider (already a transitive dep but pinned
+# here so the local path is self-contained).
+httpx>=0.27
+
+# Optional: only required when LOCAL_VAD_BACKEND=silero. Skip if you accept
+# the default RMS-energy VAD to avoid a ~2 GB CPU torch install.
+# torch>=2.2,<3
