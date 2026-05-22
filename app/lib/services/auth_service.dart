@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:omi/backend/http/api/users.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
+import 'package:omi/local/auth/local_auth_storage.dart'; // ── LOCAL ONLY ──
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/logger.dart';
 
@@ -154,6 +155,7 @@ class AuthService {
 
   Future<void> signOut() async {
     _clearCachedAuth();
+    if (Env.localAuthEnabled) await LocalAuthStorage.clear(); // ── LOCAL ONLY ──
     await FirebaseAuth.instance.signOut();
   }
 
