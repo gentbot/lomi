@@ -9,6 +9,7 @@ import 'package:omi/backend/http/clock_skew_detector.dart';
 import 'package:omi/backend/http/http_pool_manager.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/env/env.dart';
+import 'package:omi/local/auth/local_auth_storage.dart'; // ── LOCAL ONLY ──
 import 'package:omi/services/auth_service.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
@@ -31,6 +32,12 @@ class AuthTokenUnavailableException implements Exception {
 }
 
 Future<String> getAuthHeader() async {
+  // ── LOCAL ONLY — return local JWT directly if valid, bypassing Firebase refresh ──
+  if (Env.localAuthEnabled) {
+    final localToken = await LocalAuthStorage.getValidToken();
+    if (localToken != null) return 'Bearer $localToken';
+  }
+
   DateTime? expiry = DateTime.fromMillisecondsSinceEpoch(SharedPreferencesUtil().tokenExpirationTime);
   bool hasAuthToken = SharedPreferencesUtil().authToken.isNotEmpty;
 
