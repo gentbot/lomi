@@ -1,0 +1,8 @@
+# Python deps for pin_bridge.py in full (non-thin) mode.
+# Requires system Opus library for local decoding:
+#   macOS:  brew install opus
+#   Linux:  apt-get install libopus-dev
+# Install with:  pip install -r requirements-full.txt
+bleak>=0.21
+opuslib>=3.0
+websockets>=12

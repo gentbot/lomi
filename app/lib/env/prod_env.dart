@@ -59,4 +59,9 @@ final class ProdEnv implements EnvFields {
   @override
   @EnviedField(varName: 'STAGING_API_URL', obfuscate: true)
   final String? stagingApiUrl = _ProdEnv.stagingApiUrl;
+
+  // ── LOCAL ONLY — always false in prod ──
+  @override
+  @EnviedField(varName: 'LOCAL_AUTH_ENABLED', obfuscate: false, defaultValue: false)
+  final bool? localAuthEnabled = _ProdEnv.localAuthEnabled;
 }

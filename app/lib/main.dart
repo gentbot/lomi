@@ -74,6 +74,7 @@ import 'package:omi/utils/debug_log_manager.dart';
 import 'package:omi/utils/debugging/crashlytics_manager.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/environment_detector.dart';
+import 'package:omi/local/auth/local_auth_storage.dart'; // ── LOCAL ONLY ──
 import 'package:omi/pages/settings/developer.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
@@ -172,6 +173,21 @@ Future _init() async {
   print('DEBUG main: Before getIdToken - currentUser=${FirebaseAuth.instance.currentUser?.uid}');
   bool isAuth = (await AuthService.instance.getIdToken()) != null;
   print('DEBUG main: After getIdToken - isAuth=$isAuth, currentUser=${FirebaseAuth.instance.currentUser?.uid}');
+
+  // ── LOCAL ONLY — restore local JWT session if Firebase has no user ──
+  if (!isAuth && Env.localAuthEnabled) {
+    final localToken = await LocalAuthStorage.getValidToken();
+    if (localToken != null) {
+      isAuth = true;
+      final uid = await LocalAuthStorage.getUid();
+      if (uid != null && uid.isNotEmpty) {
+        SharedPreferencesUtil().uid = uid;
+      }
+      debugPrint('main: Local JWT session restored');
+    }
+  }
+  // ── END LOCAL ONLY ──
+
   if (isAuth) {
     PlatformManager.instance.analytics.identify();
     // Restore onboarding state from server if not already set locally

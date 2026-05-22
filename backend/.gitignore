@@ -1,0 +1,10 @@
+# Local-only runtime artifacts — never commit these
+omi_local.db
+omi_local.db-shm
+omi_local.db-wal
+env_backups/
+
+# Root .gitignore has `.env*` which would swallow our local template files.
+# Explicitly allow them here so they can be committed as documentation.
+!.env.local.example
+!.env.reference

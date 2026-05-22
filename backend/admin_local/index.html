@@ -1,0 +1,3029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Omi Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ── Notification banner ── */
+    #notification-bar {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 13px 20px;
+      font-size: 14px; font-weight: 500;
+      text-align: center; z-index: 2000;
+      cursor: pointer;
+    }
+    #notification-bar.error   { background: #c0392b; color: #fff; display: block; }
+    #notification-bar.success { background: #27ae60; color: #fff; display: block; }
+    #notification-bar.hidden  { display: none; }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Card (login/register) ── */
+    .card-wrap {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.12);
+      padding: 36px 32px;
+      width: 100%; max-width: 400px;
+    }
+    .card h1 { font-size: 22px; font-weight: 700; color: #2c3e50; margin-bottom: 6px; }
+    .card .subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
+
+    /* ── Form elements ── */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-weight: 500; margin-bottom: 5px; color: #444; }
+    .field input {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid #d0d5dd; border-radius: 5px;
+      font-size: 14px; color: #333;
+      transition: border-color .15s;
+      outline: none;
+    }
+    .field input:focus { border-color: #2c3e50; }
+    .field input.error { border-color: #c0392b; }
+    .field-error { display: block; color: #c0392b; font-size: 12px; margin-top: 4px; min-height: 16px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-block; padding: 9px 18px;
+      border: none; border-radius: 5px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary   { background: #2c3e50; color: #fff; }
+    .btn-secondary { background: #ecf0f1; color: #333; }
+    .btn-danger    { background: #c0392b; color: #fff; }
+    .btn-sm        { padding: 5px 12px; font-size: 13px; }
+    .btn-full      { width: 100%; text-align: center; margin-top: 4px; }
+
+    .link-btn {
+      background: none; border: none; color: #2980b9;
+      cursor: pointer; font-size: 13px; padding: 0;
+      text-decoration: underline;
+    }
+    .link-btn:hover { color: #1c5980; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      background: #2c3e50; color: #fff;
+      padding: 0 24px;
+      display: flex; align-items: center; gap: 10px;
+      height: 52px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .toolbar .title { font-weight: 700; font-size: 16px; flex: 1; }
+    .toolbar .btn-secondary { background: rgba(255,255,255,.15); color: #fff; }
+    .toolbar .btn-secondary:hover { background: rgba(255,255,255,.25); }
+
+    /* ── Users view ── */
+    #view-users { padding-top: 0px; }
+    .table-wrap { padding: 24px; }
+    table { width: 100%; border-collapse: collapse; background: #fff;
+            border-radius: 8px; overflow: hidden;
+            box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+    thead tr { background: #2c3e50; color: #fff; }
+    th { padding: 11px 14px; text-align: left; font-weight: 600; font-size: 13px; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #fafbfc; }
+    .actions { display: flex; gap: 6px; }
+    #empty-state {
+      text-align: center; color: #888; padding: 48px 0;
+      background: #fff; border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.08);
+    }
+    .uid-cell { font-family: monospace; font-size: 12px; color: #666; }
+    .self-badge {
+      display: inline-block; background: #e8f4fd; color: #2980b9;
+      border-radius: 3px; padding: 1px 6px; font-size: 11px;
+      margin-left: 6px; font-weight: 600;
+    }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      display: none; position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,.45);
+      z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 8px;
+      padding: 28px 28px 24px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+      position: relative;
+    }
+    .modal-box h2 { font-size: 17px; font-weight: 700; margin-bottom: 18px; color: #2c3e50; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .modal-notif {
+      padding: 9px 12px; border-radius: 5px; font-size: 13px;
+      margin-bottom: 14px; display: none;
+    }
+    .modal-notif.error   { background: #fdecea; color: #c0392b; border: 1px solid #f5c6c6; display: block; }
+    .modal-notif.success { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; display: block; }
+
+    /* ── Delete confirmation text ── */
+    .delete-detail {
+      background: #fff8f0; border: 1px solid #f5cba7;
+      border-radius: 5px; padding: 12px; font-size: 13px;
+      color: #555; margin-bottom: 10px; line-height: 1.5;
+    }
+    .delete-detail strong { color: #c0392b; }
+
+    /* ── Settings view ── */
+    #view-settings { padding-top: 0; }
+    .settings-wrap { padding: 24px; max-width: 960px; margin: 0 auto; }
+
+    /* Tabs used by both Settings and Docs */
+    .section-tabs { display: flex; margin-bottom: 0; border-bottom: 2px solid #e0e0e0; }
+    .tab-btn {
+      padding: 10px 20px; border: none; background: none;
+      font-size: 14px; font-weight: 500; color: #666;
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -2px; transition: color .15s;
+    }
+    .tab-btn:hover { color: #2c3e50; }
+    .tab-btn.active { color: #2c3e50; border-bottom-color: #2c3e50; }
+    .tab-panel { display: none; padding-top: 20px; }
+    .tab-panel.active { display: block; }
+
+    /* File path badge */
+    .file-badge {
+      display: block;
+      padding: 7px 12px; border-radius: 5px;
+      font-size: 12px; font-family: monospace; font-weight: 600;
+      margin-bottom: 20px; word-break: break-all;
+    }
+    .file-badge.exists  { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; }
+    .file-badge.missing { background: #fff8f0; color: #e67e22; border: 1px solid #f5cba7; }
+
+    /* Settings groups */
+    .settings-section { margin-bottom: 28px; }
+    .settings-section-header {
+      display: flex; align-items: center;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      color: #888; letter-spacing: .06em;
+      margin-bottom: 12px; padding-bottom: 6px;
+      border-bottom: 1px solid #eee;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .settings-field { position: relative; }
+    .settings-field .field-label-row {
+      display: flex; align-items: center;
+      margin-bottom: 5px; gap: 4px;
+    }
+    .settings-field .field-label-row label {
+      font-weight: 500; font-size: 13px; color: #444; flex: 1;
+    }
+
+    /* Info tooltip */
+    .info-wrap { position: relative; display: inline-block; }
+    .info-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px;
+      background: none; border: 1px solid #bbb; border-radius: 50%;
+      color: #999; font-size: 9px; font-style: italic; font-weight: 700;
+      cursor: help; line-height: 1; flex-shrink: 0;
+    }
+    .info-btn:hover, .info-wrap:hover .info-btn { color: #2c3e50; border-color: #2c3e50; }
+    .tooltip-box {
+      display: none; position: absolute;
+      left: 20px; top: -4px; z-index: 800;
+      width: 280px; background: #1a2636; color: #d8e8f4;
+      border-radius: 6px; padding: 10px 12px;
+      font-size: 11.5px; line-height: 1.55; font-weight: 400;
+      white-space: pre-wrap; word-break: break-word;
+      box-shadow: 0 4px 18px rgba(0,0,0,.35);
+      pointer-events: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .info-wrap:hover .tooltip-box { display: block; }
+
+    .settings-field input {
+      width: 100%; padding: 8px 10px;
+      border: 1px solid #d0d5dd; border-radius: 5px;
+      font-size: 12px; color: #333; font-family: monospace;
+      transition: border-color .15s; outline: none;
+    }
+    .settings-field input:focus { border-color: #2c3e50; }
+
+    .settings-save-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 24px; padding-top: 18px;
+      border-top: 1px solid #eee;
+    }
+    .settings-notice { font-size: 12px; color: #888; }
+    .settings-notice code {
+      background: #f4f4f4; padding: 1px 5px;
+      border-radius: 3px; font-size: 11px;
+    }
+    .settings-empty, .settings-loading { color: #888; font-size: 13px; padding: 20px 0; }
+
+    /* ── Docs view ── */
+    #view-docs { padding-top: 0; }
+    .docs-layout {
+      display: flex;
+      height: calc(100vh - 52px);
+    }
+    .docs-sidebar {
+      width: 230px; min-width: 180px;
+      background: #fff; border-right: 1px solid #e0e0e0;
+      overflow-y: auto; padding: 12px 0;
+      flex-shrink: 0;
+    }
+    .docs-sidebar-section { margin-bottom: 4px; }
+    .docs-sidebar-section h4 {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      color: #aaa; letter-spacing: .07em;
+      padding: 8px 14px 4px; user-select: none;
+    }
+    .docs-sidebar-item {
+      display: block; width: 100%; text-align: left;
+      padding: 7px 14px; border: none; background: none;
+      cursor: pointer; font-size: 13px; color: #444;
+      transition: background .1s; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .docs-sidebar-item:hover:not(.missing) { background: #f0f2f5; }
+    .docs-sidebar-item.active { background: #e8f0fe; color: #2c3e50; font-weight: 600; }
+    .docs-sidebar-item.missing { color: #bbb; cursor: not-allowed; font-style: italic; }
+    .docs-content {
+      flex: 1; overflow-y: auto; padding: 28px 36px;
+      background: #fafbfc;
+    }
+    .docs-placeholder { color: #aaa; font-size: 14px; padding-top: 40px; }
+    .docs-loading { color: #888; font-size: 14px; }
+
+    /* Markdown body styles */
+    .md-body { font-size: 14px; line-height: 1.75; color: #333; max-width: 820px; }
+    .md-body h1 { font-size: 22px; font-weight: 700; margin: 0 0 18px; color: #1a2636; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    .md-body h2 { font-size: 17px; font-weight: 700; margin: 28px 0 10px; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .md-body h3 { font-size: 15px; font-weight: 700; margin: 20px 0 8px; color: #333; }
+    .md-body h4 { font-size: 13px; font-weight: 700; margin: 14px 0 6px; color: #555; }
+    .md-body p { margin: 0 0 12px; }
+    .md-body ul, .md-body ol { padding-left: 22px; margin: 0 0 12px; }
+    .md-body li { margin-bottom: 4px; }
+    .md-body code {
+      background: #f0f2f5; border: 1px solid #e0e0e0;
+      border-radius: 3px; padding: 1px 5px;
+      font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .md-body pre {
+      background: #1e2530; color: #d4d4d4;
+      border-radius: 6px; padding: 14px 16px;
+      overflow-x: auto; margin: 0 0 16px;
+      font-size: 12.5px; line-height: 1.5;
+    }
+    .md-body pre code {
+      background: none; border: none; padding: 0;
+      color: inherit; font-size: inherit;
+    }
+    .md-body table {
+      width: 100%; border-collapse: collapse;
+      margin: 0 0 16px; font-size: 13px;
+      background: #fff; border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+    .md-body th {
+      background: #2c3e50; color: #fff;
+      padding: 9px 12px; text-align: left; font-weight: 600;
+    }
+    .md-body td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .md-body tbody tr:last-child td { border-bottom: none; }
+    .md-body tbody tr:hover td { background: #fafbfc; }
+    .md-body blockquote {
+      border-left: 3px solid #d0d5dd; margin: 0 0 12px;
+      padding: 8px 16px; color: #666; background: #f8f9fa;
+      border-radius: 0 4px 4px 0;
+    }
+    .md-body hr { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
+    .md-body a { color: #2980b9; text-decoration: none; }
+    .md-body a:hover { text-decoration: underline; }
+    .md-body strong { font-weight: 700; }
+    .md-body em { font-style: italic; }
+
+    /* ── URLs view ── */
+    #view-urls { padding-top: 0; }
+    .urls-wrap { padding: 24px; max-width: 960px; margin: 0 auto; }
+    .urls-group { margin-bottom: 36px; }
+    .urls-group-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px; padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .urls-group-header h2 { font-size: 15px; font-weight: 700; color: #2c3e50; margin: 0; flex: 1; }
+    .urls-group-header .group-sub { font-size: 12px; color: #999; }
+    .url-badge {
+      display: inline-block; padding: 2px 9px;
+      border-radius: 10px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0;
+    }
+    .url-badge.local    { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; }
+    .url-badge.cloud    { background: #fff8f0; color: #e67e22; border: 1px solid #f5cba7; }
+    .url-badge.external { background: #f0f2f5; color: #7f8c8d; border: 1px solid #d0d5dd; }
+    .urls-table {
+      width: 100%; border-collapse: collapse; background: #fff;
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.08);
+    }
+    .urls-table thead tr { background: #2c3e50; color: #fff; }
+    .urls-table th { padding: 10px 14px; text-align: left; font-weight: 600; font-size: 12px; }
+    .urls-table td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: top; font-size: 13px; }
+    .urls-table tbody tr:last-child td { border-bottom: none; }
+    .urls-table tbody tr:hover td { background: #fafbfc; }
+    .url-link {
+      color: #2980b9; text-decoration: none;
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+    }
+    .url-link:hover { text-decoration: underline; }
+    .url-nolink {
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #555;
+    }
+    .url-env {
+      display: inline-block; margin-top: 4px;
+      font-family: monospace; font-size: 11px;
+      background: #f4f4f4; padding: 1px 5px;
+      border-radius: 3px; color: #888;
+    }
+    .url-note { font-size: 11px; color: #999; margin-top: 3px; font-style: italic; }
+    .url-purpose { font-size: 13px; color: #444; line-height: 1.4; }
+
+    /* ── History view ── */
+    #view-history { padding-top: 0; }
+    .hist-layout { display: flex; height: calc(100vh - 52px); }
+    .hist-sidebar {
+      width: 200px; min-width: 160px; flex-shrink: 0;
+      background: #fff; border-right: 1px solid #e0e0e0;
+      overflow-y: auto; padding: 12px 0;
+    }
+    .hist-nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase;
+      color: #aaa; letter-spacing: .07em; padding: 12px 14px 4px; user-select: none; }
+    .hist-nav-item {
+      display: block; width: 100%; text-align: left;
+      padding: 8px 14px; border: none; background: none;
+      cursor: pointer; font-size: 13px; color: #444;
+      transition: background .1s;
+    }
+    .hist-nav-item:hover { background: #f0f2f5; }
+    .hist-nav-item.active { background: #e8f0fe; color: #2c3e50; font-weight: 600;
+      border-left: 3px solid #2c3e50; }
+    .hist-nav-item .nav-count {
+      float: right; font-size: 11px; color: #aaa;
+      background: #f0f2f5; border-radius: 9px; padding: 1px 7px; font-weight: 400;
+    }
+    .hist-nav-item.active .nav-count { background: #c5d6f0; color: #2c3e50; }
+
+    .hist-main { flex: 1; overflow-y: auto; padding: 20px 24px; background: #f0f2f5; }
+
+    .hist-section-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .hist-section-title { font-size: 16px; font-weight: 700; color: #2c3e50; flex: 1; }
+    .hist-count-pill {
+      background: #e8f0fe; color: #2c3e50; border-radius: 12px;
+      padding: 2px 10px; font-size: 12px; font-weight: 600;
+    }
+
+    .hist-loading, .hist-empty, .hist-error {
+      text-align: center; padding: 48px 0; font-size: 14px; color: #888;
+    }
+    .hist-error { color: #c0392b; }
+
+    /* Info callout */
+    .hist-callout {
+      background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;
+      padding: 12px 16px; margin-bottom: 16px; font-size: 13px;
+      color: #6d4c00; line-height: 1.6;
+    }
+    .hist-callout strong { color: #5d4037; }
+
+    /* Cards */
+    .hist-card {
+      background: #fff; border-radius: 7px; margin-bottom: 12px;
+      box-shadow: 0 1px 5px rgba(0,0,0,.07); overflow: hidden;
+    }
+    .card-hdr {
+      display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+      padding: 13px 16px 8px; border-bottom: 1px solid #f0f0f0;
+    }
+    .card-title { font-weight: 600; font-size: 14px; color: #2c3e50; flex: 1; min-width: 0; }
+    .card-date { font-size: 11px; color: #aaa; white-space: nowrap; }
+    .card-body { padding: 10px 16px; }
+    .card-summary { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 8px; }
+    .card-footer {
+      padding: 6px 16px; background: #f8f9fa; border-top: 1px solid #f0f0f0;
+      font-size: 11px; color: #aaa;
+    }
+    .card-meta { margin-bottom: 8px; font-size: 13px; color: #444; }
+    .card-meta strong { font-size: 12px; text-transform: uppercase;
+      letter-spacing: .04em; color: #888; display: block; margin-bottom: 4px; }
+    .mini-list { padding-left: 18px; margin: 0; }
+    .mini-list li { margin-bottom: 2px; font-size: 13px; color: #444; }
+
+    /* Status / category badges */
+    .status-badge {
+      display: inline-block; border-radius: 10px; padding: 2px 9px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .status-in_progress { background: #e8f4fd; color: #2980b9; }
+    .status-completed   { background: #eafaf1; color: #27ae60; }
+    .status-discarded   { background: #fdecea; color: #c0392b; }
+    .status-processing  { background: #fff8e1; color: #f39c12; }
+    .cat-badge {
+      display: inline-block; background: #f0f2f5; color: #555;
+      border-radius: 10px; padding: 2px 9px; font-size: 11px;
+    }
+
+    /* Transcript */
+    .expand-btn {
+      display: block; width: 100%; text-align: left;
+      background: #f8f9fa; border: none; border-top: 1px solid #f0f0f0;
+      padding: 8px 16px; font-size: 12px; color: #2980b9;
+      cursor: pointer; transition: background .1s;
+    }
+    .expand-btn:hover { background: #eef2f7; }
+    .transcript {
+      border-top: 1px solid #f0f0f0; padding: 12px 16px;
+      max-height: 340px; overflow-y: auto; background: #fafbfc;
+    }
+    .seg { display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px; line-height: 1.5; }
+    .seg-who { color: #2980b9; font-weight: 600; white-space: nowrap; min-width: 50px; flex-shrink: 0; }
+    .seg-text { color: #333; }
+    .no-transcript { font-size: 12px; color: #bbb; padding: 8px 16px; }
+
+    /* Completed state */
+    .done-yes { color: #27ae60; font-weight: 600; }
+    .done-no  { color: #e67e22; }
+
+    /* Profile grid */
+    .profile-card { background: #fff; border-radius: 7px; box-shadow: 0 1px 5px rgba(0,0,0,.07);
+      overflow: hidden; max-width: 600px; }
+    .profile-row { display: flex; padding: 11px 18px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .profile-row:last-child { border-bottom: none; }
+    .profile-key { font-weight: 600; color: #888; min-width: 160px; flex-shrink: 0; font-size: 12px;
+      text-transform: uppercase; letter-spacing: .04em; padding-top: 1px; }
+    .profile-val { color: #333; word-break: break-all; }
+    .profile-val.empty { color: #bbb; font-style: italic; }
+
+    /* Chat messages inline */
+    .msg-list { padding: 12px 16px; max-height: 300px; overflow-y: auto; background: #fafbfc; border-top: 1px solid #f0f0f0; }
+    .msg-row { margin-bottom: 8px; font-size: 13px; }
+    .msg-role { font-weight: 600; color: #2c3e50; margin-right: 6px; }
+    .msg-role.ai { color: #8e44ad; }
+    .msg-text { color: #444; line-height: 1.5; }
+
+    /* Pagination */
+    .hist-pagination { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-bottom: 8px; }
+    .hist-pagination .page-info { font-size: 12px; color: #888; flex: 1; }
+
+    .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div id="notification-bar" class="hidden" role="alert"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: LOGIN
+═══════════════════════════════════════════════════════ -->
+<section id="view-login" class="view">
+  <div class="card-wrap">
+    <div class="card">
+      <h1>Omi Admin</h1>
+      <p class="subtitle">Local backend — sign in to continue</p>
+      <form id="form-login" novalidate>
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" autocomplete="email" placeholder="you@example.dev">
+          <span class="field-error" id="login-email-err"></span>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••">
+          <span class="field-error" id="login-password-err"></span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-login-submit">Sign In</button>
+      </form>
+      <p style="margin-top:18px; text-align:center; color:#666;">
+        No account yet?
+        <button class="link-btn" id="link-to-register">Register first account</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: REGISTER
+═══════════════════════════════════════════════════════ -->
+<section id="view-register" class="view">
+  <div class="card-wrap">
+    <div class="card">
+      <h1>Create Account</h1>
+      <p class="subtitle">Register the first local admin account</p>
+      <form id="form-register" novalidate>
+        <div class="field">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" autocomplete="email" placeholder="you@example.dev">
+          <span class="field-error" id="reg-email-err"></span>
+        </div>
+        <div class="field">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" autocomplete="new-password" placeholder="Min 8 characters">
+          <span class="field-error" id="reg-password-err"></span>
+        </div>
+        <div class="field">
+          <label for="reg-confirm">Confirm Password</label>
+          <input type="password" id="reg-confirm" autocomplete="new-password" placeholder="Repeat password">
+          <span class="field-error" id="reg-confirm-err"></span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-reg-submit">Create Account</button>
+      </form>
+      <p style="margin-top:18px; text-align:center; color:#666;">
+        <button class="link-btn" id="link-to-login">Back to Sign In</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: USERS LIST
+═══════════════════════════════════════════════════════ -->
+<section id="view-users" class="view">
+  <header class="toolbar">
+    <span class="title">Omi Admin</span>
+    <button class="btn btn-primary btn-sm" id="btn-new-user">+ New User</button>
+    <button class="btn btn-secondary btn-sm" id="btn-change-pw">Change My Password</button>
+    <button class="btn btn-secondary btn-sm" id="btn-history">&#128203; History</button>
+    <button class="btn btn-secondary btn-sm" id="btn-settings">&#9881; Settings</button>
+    <button class="btn btn-secondary btn-sm" id="btn-docs">&#128196; Docs</button>
+    <button class="btn btn-secondary btn-sm" id="btn-urls">&#128279; URLs</button>
+    <button class="btn btn-secondary btn-sm" id="btn-sign-out">Sign Out</button>
+  </header>
+  <div class="table-wrap">
+    <div id="empty-state" style="display:none;">No users found.</div>
+    <table id="user-table" style="display:none;">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Display Name</th>
+          <th>ID</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="user-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: SETTINGS
+═══════════════════════════════════════════════════════ -->
+<section id="view-settings" class="view">
+  <header class="toolbar">
+    <button class="btn btn-secondary btn-sm" id="btn-back-from-settings">&#8592; Users</button>
+    <span class="title">Settings</span>
+    <button class="btn btn-secondary btn-sm" id="btn-docs-from-settings">&#128196; Docs</button>
+    <button class="btn btn-secondary btn-sm" id="btn-urls-from-settings">&#128279; URLs</button>
+  </header>
+  <div class="settings-wrap">
+    <div class="section-tabs" id="settings-tabs">
+      <button class="tab-btn active" data-settings-tab="backend">
+        Backend <span style="font-size:11px;color:#aaa;font-weight:400;">.env</span>
+      </button>
+      <button class="tab-btn" data-settings-tab="desktop">
+        Desktop App <span style="font-size:11px;color:#aaa;font-weight:400;">Backend-Rust/.env</span>
+      </button>
+      <button class="tab-btn" data-settings-tab="ios">
+        iOS App <span style="font-size:11px;color:#aaa;font-weight:400;">.dev.env</span>
+      </button>
+    </div>
+
+    <div id="settings-tab-backend" class="tab-panel active">
+      <div id="backend-file-badge" class="file-badge" style="display:none;"></div>
+      <div id="backend-fields-container"><p class="settings-loading">Loading&hellip;</p></div>
+      <div class="settings-save-row">
+        <button class="btn btn-primary" id="btn-save-backend">Save Backend Config</button>
+        <span class="settings-notice">Changes take effect after server restart.</span>
+      </div>
+    </div>
+
+    <div id="settings-tab-desktop" class="tab-panel">
+      <div id="desktop-file-badge" class="file-badge" style="display:none;"></div>
+      <div id="desktop-fields-container"><p class="settings-loading">Loading&hellip;</p></div>
+      <div class="settings-save-row">
+        <button class="btn btn-primary" id="btn-save-desktop">Save Desktop Config</button>
+        <span class="settings-notice">Run <code>./run.sh</code> for changes to take effect.</span>
+      </div>
+    </div>
+
+    <div id="settings-tab-ios" class="tab-panel">
+      <div id="ios-file-badge" class="file-badge" style="display:none;"></div>
+      <div id="ios-fields-container"><p class="settings-loading">Loading&hellip;</p></div>
+      <div class="settings-save-row">
+        <button class="btn btn-primary" id="btn-save-ios">Save iOS Config</button>
+        <span class="settings-notice">Run <code>flutter pub run build_runner build</code> then rebuild the app.</span>
+      </div>
+    </div>
+
+    <!-- Backups section (always shown, populated after first save or on load) -->
+    <div id="backups-section" style="margin-top:32px; padding-top:20px; border-top:1px solid #e0e0e0; display:none;">
+      <div class="settings-section-header" style="margin-bottom:10px;">
+        Automatic Backups
+        <span style="font-size:11px; color:#aaa; font-weight:400; margin-left:8px; text-transform:none;">
+          — stored in <code style="font-size:10px;">backend/env_backups/</code>
+        </span>
+      </div>
+      <div id="backups-list" style="font-size:12px; color:#666;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: DOCS
+═══════════════════════════════════════════════════════ -->
+<section id="view-docs" class="view">
+  <header class="toolbar">
+    <button class="btn btn-secondary btn-sm" id="btn-back-from-docs">&#8592; Users</button>
+    <span class="title" id="docs-title">Documentation</span>
+    <button class="btn btn-secondary btn-sm" id="btn-settings-from-docs">&#9881; Settings</button>
+    <button class="btn btn-secondary btn-sm" id="btn-urls-from-docs">&#128279; URLs</button>
+  </header>
+  <div class="docs-layout">
+    <nav class="docs-sidebar" id="docs-sidebar">
+      <p style="padding:12px 14px; color:#aaa; font-size:12px;">Loading&hellip;</p>
+    </nav>
+    <div class="docs-content" id="docs-content">
+      <p class="docs-placeholder">Select a document from the sidebar.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: URL REFERENCE
+═══════════════════════════════════════════════════════ -->
+<section id="view-urls" class="view">
+  <header class="toolbar">
+    <button class="btn btn-secondary btn-sm" id="btn-back-from-urls">&#8592; Users</button>
+    <span class="title">URL Reference</span>
+    <button class="btn btn-secondary btn-sm" id="btn-settings-from-urls">&#9881; Settings</button>
+    <button class="btn btn-secondary btn-sm" id="btn-docs-from-urls">&#128196; Docs</button>
+  </header>
+  <div class="urls-wrap" id="urls-content">
+    <!-- Rendered by JS -->
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEW: HISTORY
+═══════════════════════════════════════════════════════ -->
+<section id="view-history" class="view">
+  <header class="toolbar">
+    <button class="btn btn-secondary btn-sm" id="btn-back-from-history">&#8592; Users</button>
+    <span class="title">Data History</span>
+    <span id="hist-user-label" style="font-size:12px;color:rgba(255,255,255,.6);margin-left:4px;"></span>
+  </header>
+  <div class="hist-layout">
+    <nav class="hist-sidebar">
+      <div class="hist-nav-section">Data</div>
+      <button class="hist-nav-item active" data-hist="conversations">&#128172; Conversations</button>
+      <button class="hist-nav-item" data-hist="memories">&#129504; Memories</button>
+      <button class="hist-nav-item" data-hist="action-items">&#9989; Action Items</button>
+      <div class="hist-nav-section">Chat</div>
+      <button class="hist-nav-item" data-hist="chat-sessions">&#128172; Chat Sessions</button>
+      <button class="hist-nav-item" data-hist="staged-tasks">&#128203; Staged Tasks</button>
+      <div class="hist-nav-section">Account</div>
+      <button class="hist-nav-item" data-hist="profile">&#128100; Profile</button>
+    </nav>
+    <main class="hist-main" id="hist-main">
+      <p class="hist-loading">Select a section to load data.</p>
+    </main>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: CREATE USER
+═══════════════════════════════════════════════════════ -->
+<div id="modal-create" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>New User</h2>
+    <div class="modal-notif" id="modal-create-notif"></div>
+    <form id="form-create" novalidate>
+      <div class="field">
+        <label for="create-email">Email</label>
+        <input type="email" id="create-email" placeholder="user@example.dev">
+        <span class="field-error" id="create-email-err"></span>
+      </div>
+      <div class="field">
+        <label for="create-password">Password</label>
+        <input type="password" id="create-password" placeholder="Min 8 characters">
+        <span class="field-error" id="create-password-err"></span>
+      </div>
+      <div class="field">
+        <label for="create-confirm">Confirm Password</label>
+        <input type="password" id="create-confirm" placeholder="Repeat password">
+        <span class="field-error" id="create-confirm-err"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-create-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: EDIT USER
+═══════════════════════════════════════════════════════ -->
+<div id="modal-edit" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Edit User</h2>
+    <div class="modal-notif" id="modal-edit-notif"></div>
+    <form id="form-edit" novalidate>
+      <div class="field">
+        <label for="edit-email">Email</label>
+        <input type="email" id="edit-email" placeholder="user@example.dev">
+        <span class="field-error" id="edit-email-err"></span>
+      </div>
+      <div class="field">
+        <label for="edit-display-name">Display Name <span style="color:#999;font-weight:400;">(optional)</span></label>
+        <input type="text" id="edit-display-name" placeholder="Alice">
+        <span class="field-error" id="edit-display-name-err"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-edit-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: RESET PASSWORD (admin)
+═══════════════════════════════════════════════════════ -->
+<div id="modal-reset-pw" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Reset Password</h2>
+    <p style="color:#666; font-size:13px; margin-bottom:16px;">Set a new password for <strong id="reset-pw-email"></strong></p>
+    <div class="modal-notif" id="modal-reset-pw-notif"></div>
+    <form id="form-reset-pw" novalidate>
+      <div class="field">
+        <label for="reset-new-pw">New Password</label>
+        <input type="password" id="reset-new-pw" placeholder="Min 8 characters">
+        <span class="field-error" id="reset-new-pw-err"></span>
+      </div>
+      <div class="field">
+        <label for="reset-confirm-pw">Confirm New Password</label>
+        <input type="password" id="reset-confirm-pw" placeholder="Repeat password">
+        <span class="field-error" id="reset-confirm-pw-err"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-reset-pw-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Reset Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: CHANGE OWN PASSWORD
+═══════════════════════════════════════════════════════ -->
+<div id="modal-change-pw" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Change My Password</h2>
+    <div class="modal-notif" id="modal-change-pw-notif"></div>
+    <form id="form-change-pw" novalidate>
+      <div class="field">
+        <label for="change-current-pw">Current Password</label>
+        <input type="password" id="change-current-pw" placeholder="Your current password">
+        <span class="field-error" id="change-current-pw-err"></span>
+      </div>
+      <div class="field">
+        <label for="change-new-pw">New Password</label>
+        <input type="password" id="change-new-pw" placeholder="Min 8 characters">
+        <span class="field-error" id="change-new-pw-err"></span>
+      </div>
+      <div class="field">
+        <label for="change-confirm-pw">Confirm New Password</label>
+        <input type="password" id="change-confirm-pw" placeholder="Repeat new password">
+        <span class="field-error" id="change-confirm-pw-err"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-change-pw-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Change Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: DELETE SINGLE ITEM (History)
+═══════════════════════════════════════════════════════ -->
+<div id="modal-delete-item" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Delete Item</h2>
+    <div class="modal-notif" id="modal-delete-item-notif"></div>
+    <div class="delete-detail" id="delete-item-detail"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-delete-item-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btn-delete-item-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: DELETE ALL (History section)
+═══════════════════════════════════════════════════════ -->
+<div id="modal-delete-all" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2 id="delete-all-modal-title">Delete All</h2>
+    <div class="modal-notif" id="modal-delete-all-notif"></div>
+    <div class="delete-detail" id="delete-all-detail"></div>
+    <div class="field" style="margin-top:12px;">
+      <label for="delete-all-confirm-input" style="font-size:13px;color:#555;">
+        Type <strong id="delete-all-confirm-word"></strong> to confirm:
+      </label>
+      <input type="text" id="delete-all-confirm-input" placeholder="" autocomplete="off"
+             style="margin-top:6px; font-size:13px;">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-delete-all-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btn-delete-all-confirm" disabled>Delete All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: CONFIRM DELETE
+═══════════════════════════════════════════════════════ -->
+<div id="modal-confirm-delete" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Delete User</h2>
+    <div class="modal-notif" id="modal-delete-notif"></div>
+    <div class="delete-detail">
+      Delete <strong id="delete-email-label"></strong>?<br><br>
+      This permanently removes their account and all associated data:
+      conversations, memories, messages, and action items. This cannot be undone.
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-delete-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btn-delete-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: GET TOKEN
+═══════════════════════════════════════════════════════ -->
+<div id="modal-get-token" class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <h2>Access Token</h2>
+    <p style="color:#666; font-size:13px; margin-bottom:16px;">JWT for <strong id="token-email-label"></strong></p>
+    <div class="modal-notif" id="modal-get-token-notif"></div>
+    <div id="token-display-area" style="display:none;">
+      <div class="field">
+        <label for="token-value">Bearer Token</label>
+        <textarea id="token-value" readonly rows="4"
+          style="font-family:monospace; font-size:11px; resize:vertical; width:100%; box-sizing:border-box;
+                 padding:8px; border:1px solid #ddd; border-radius:4px; background:#f8f8f8; word-break:break-all;"></textarea>
+      </div>
+      <p style="font-size:12px; color:#888; margin:4px 0 16px;">
+        Expires in <span id="token-ttl-label"></span>.
+        Use as: <code style="font-size:11px;">Authorization: Bearer &lt;token&gt;</code>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btn-get-token-close">Close</button>
+      <button type="button" class="btn btn-primary" id="btn-copy-token" style="display:none;">Copy Token</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── State ────────────────────────────────────────────────────────────────────
+
+const API_BASE = window.location.origin;
+
+let token         = sessionStorage.getItem('omi_admin_token') || null;
+let currentUserId = sessionStorage.getItem('omi_admin_uid')   || null;
+let editingUserId = null;
+let editingEmail  = null;
+let _notifTimer   = null;
+
+// ── Notification banner ──────────────────────────────────────────────────────
+
+function showNotification(msg, type = 'error', duration = 0) {
+  const el = document.getElementById('notification-bar');
+  el.textContent = msg;
+  el.className = type;
+  clearTimeout(_notifTimer);
+  if (duration > 0) {
+    _notifTimer = setTimeout(() => { el.className = 'hidden'; }, duration);
+  }
+}
+
+function clearNotification() {
+  const el = document.getElementById('notification-bar');
+  el.className = 'hidden';
+  clearTimeout(_notifTimer);
+}
+
+document.getElementById('notification-bar').addEventListener('click', clearNotification);
+
+// ── Modal inline notifications ────────────────────────────────────────────────
+
+function showModalNotif(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'modal-notif ' + type;
+}
+
+function clearModalNotif(id) {
+  const el = document.getElementById(id);
+  el.textContent = '';
+  el.className = 'modal-notif';
+}
+
+// ── View navigation ───────────────────────────────────────────────────────────
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  clearNotification();
+}
+
+// ── Modal open / close ────────────────────────────────────────────────────────
+
+function openModal(id) {
+  document.getElementById('modal-' + id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ── Session ───────────────────────────────────────────────────────────────────
+
+function saveSession(tok, uid) {
+  token = tok;
+  currentUserId = uid;
+  sessionStorage.setItem('omi_admin_token', tok);
+  sessionStorage.setItem('omi_admin_uid', uid);
+}
+
+function clearSession() {
+  token = null;
+  currentUserId = null;
+  editingUserId = null;
+  editingEmail  = null;
+  sessionStorage.clear();
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+async function api(method, path, body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const opts = { method, headers };
+  if (body !== null) opts.body = JSON.stringify(body);
+
+  let res;
+  try {
+    res = await fetch(API_BASE + path, opts);
+  } catch (e) {
+    throw { status: 0, detail: 'Cannot reach the backend at ' + API_BASE + '. Is the server running?' };
+  }
+
+  if (res.status === 204) return {};
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    let detail;
+    if (Array.isArray(data.detail)) {
+      detail = data.detail.map(e => e.msg || e.message || JSON.stringify(e)).join('; ');
+    } else {
+      detail = data.detail || res.statusText || 'Unknown error';
+    }
+    if (res.status === 422) {
+      detail = 'Email format not accepted. Use a standard domain (e.g. .dev, .test).';
+    } else if (res.status === 500) {
+      detail = 'Server error. Check the backend terminal for details.';
+    }
+    throw { status: res.status, detail };
+  }
+  return data;
+}
+
+async function apiAuth(method, path, body = null) {
+  try {
+    return await api(method, path, body);
+  } catch (err) {
+    if (err.status === 401) {
+      clearSession();
+      showNotification('Session expired. Please sign in again.');
+      showView('login');
+    }
+    throw err;
+  }
+}
+
+// ── Validation helpers ────────────────────────────────────────────────────────
+
+function validateEmail(val) {
+  if (!val || !val.trim()) return 'This field is required.';
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!re.test(val.trim())) return 'Enter a valid email address.';
+  return null;
+}
+
+function validatePassword(val) {
+  if (!val) return 'This field is required.';
+  if (val.length < 8) return 'Password must be at least 8 characters.';
+  return null;
+}
+
+function validateMatch(a, b) {
+  if (!b) return 'This field is required.';
+  if (a !== b) return 'Passwords do not match.';
+  return null;
+}
+
+function showFieldError(inputId, msg) {
+  const input = document.getElementById(inputId);
+  const errEl = document.getElementById(inputId + '-err');
+  if (input) input.classList.add('error');
+  if (errEl) errEl.textContent = msg;
+  return false;
+}
+
+function clearFieldError(inputId) {
+  const input = document.getElementById(inputId);
+  const errEl = document.getElementById(inputId + '-err');
+  if (input) input.classList.remove('error');
+  if (errEl) errEl.textContent = '';
+}
+
+function clearFormErrors(fieldIds) {
+  fieldIds.forEach(id => clearFieldError(id));
+}
+
+function attachClearOnInput(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => clearFieldError(id));
+  });
+}
+
+// XSS-safe HTML escaping
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  attachClearOnInput([
+    'login-email', 'login-password',
+    'reg-email', 'reg-password', 'reg-confirm',
+    'create-email', 'create-password', 'create-confirm',
+    'edit-email', 'edit-display-name',
+    'reset-new-pw', 'reset-confirm-pw',
+    'change-current-pw', 'change-new-pw', 'change-confirm-pw',
+  ]);
+
+  if (token) {
+    try {
+      const me = await api('GET', '/v1/auth/me');
+      currentUserId = me.user_id;
+      sessionStorage.setItem('omi_admin_uid', currentUserId);
+      showView('users');
+      await loadUsers();
+    } catch (err) {
+      if (err.status === 0) {
+        showNotification('Cannot reach the backend at ' + API_BASE + '. Is the server running?');
+      }
+      clearSession();
+      showView('login');
+    }
+  } else {
+    showView('login');
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+
+document.getElementById('form-login').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['login-email', 'login-password']);
+
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  let valid = true;
+  if (!email)    { showFieldError('login-email',    'This field is required.'); valid = false; }
+  if (!password) { showFieldError('login-password', 'This field is required.'); valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('btn-login-submit');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+
+  try {
+    const data = await api('POST', '/v1/auth/login', { email, password });
+    token = data.access_token;
+    const me = await api('GET', '/v1/auth/me');
+    saveSession(data.access_token, me.user_id);
+    showView('users');
+    await loadUsers();
+  } catch (err) {
+    showNotification(err.status === 401 ? 'Incorrect email or password.' : err.detail);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+});
+
+// ── REGISTER ──────────────────────────────────────────────────────────────────
+
+document.getElementById('link-to-register').addEventListener('click', () => { clearNotification(); showView('register'); });
+document.getElementById('link-to-login').addEventListener('click',    () => { clearNotification(); showView('login'); });
+
+document.getElementById('form-register').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['reg-email', 'reg-password', 'reg-confirm']);
+
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const confirm  = document.getElementById('reg-confirm').value;
+
+  let valid = true;
+  const emailErr = validateEmail(email);
+  if (emailErr) { showFieldError('reg-email', emailErr); valid = false; }
+  const pwErr = validatePassword(password);
+  if (pwErr) { showFieldError('reg-password', pwErr); valid = false; }
+  const matchErr = validateMatch(password, confirm);
+  if (matchErr) { showFieldError('reg-confirm', matchErr); valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('btn-reg-submit');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  try {
+    await api('POST', '/v1/auth/register', { email, password });
+    const loginData = await api('POST', '/v1/auth/login', { email, password });
+    token = loginData.access_token;
+    const me = await api('GET', '/v1/auth/me');
+    saveSession(loginData.access_token, me.user_id);
+    showView('users');
+    await loadUsers();
+  } catch (err) {
+    const msg = err.detail && err.detail.toLowerCase().includes('already exists')
+      ? 'An account with this email already exists.'
+      : err.detail;
+    showNotification(msg);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+});
+
+// ── SIGN OUT ──────────────────────────────────────────────────────────────────
+
+document.getElementById('btn-sign-out').addEventListener('click', () => {
+  clearSession();
+  clearNotification();
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  showView('login');
+});
+
+// ── LOAD USERS ────────────────────────────────────────────────────────────────
+
+async function loadUsers() {
+  try {
+    const users = await apiAuth('GET', '/v1/admin/users');
+    renderUserTable(users);
+  } catch (err) {
+    if (err.status !== 401) showNotification(err.detail);
+  }
+}
+
+function renderUserTable(users) {
+  const tbody = document.getElementById('user-tbody');
+  const table = document.getElementById('user-table');
+  const empty = document.getElementById('empty-state');
+
+  tbody.innerHTML = '';
+
+  if (!users || users.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  users.forEach(u => {
+    const isSelf = u.id === currentUserId;
+    const createdDate = u.created_at
+      ? new Date(u.created_at).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' })
+      : '—';
+    const shortId = u.id.length > 12 ? u.id.substring(0, 12) + '…' : u.id;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        ${escHtml(u.email)}
+        ${isSelf ? '<span class="self-badge">you</span>' : ''}
+      </td>
+      <td>${escHtml(u.display_name || '—')}</td>
+      <td class="uid-cell" title="${escHtml(u.id)}">${escHtml(shortId)}</td>
+      <td>${createdDate}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" data-action="edit"      data-id="${escHtml(u.id)}">Edit</button>
+          <button class="btn btn-secondary btn-sm" data-action="reset-pw"  data-id="${escHtml(u.id)}" data-email="${escHtml(u.email)}">Reset PW</button>
+          <button class="btn btn-secondary btn-sm" data-action="get-token" data-id="${escHtml(u.id)}" data-email="${escHtml(u.email)}">Get Token</button>
+          <button class="btn btn-danger btn-sm"    data-action="delete"
+            data-id="${escHtml(u.id)}" data-email="${escHtml(u.email)}"
+            ${isSelf ? 'disabled title="Cannot delete your own account"' : ''}>
+            Delete
+          </button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const { action, id, email } = btn.dataset;
+      if (action === 'edit')      openEditModal(id);
+      if (action === 'reset-pw')  openResetPwModal(id, email);
+      if (action === 'get-token') openGetTokenModal(id, email);
+      if (action === 'delete')    openDeleteModal(id, email);
+    });
+  });
+}
+
+// ── CREATE USER ───────────────────────────────────────────────────────────────
+
+document.getElementById('btn-new-user').addEventListener('click', () => {
+  clearFormErrors(['create-email', 'create-password', 'create-confirm']);
+  clearModalNotif('modal-create-notif');
+  document.getElementById('form-create').reset();
+  openModal('create');
+  document.getElementById('create-email').focus();
+});
+
+document.getElementById('btn-create-cancel').addEventListener('click', () => closeModal('create'));
+
+document.getElementById('form-create').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['create-email', 'create-password', 'create-confirm']);
+  clearModalNotif('modal-create-notif');
+
+  const email    = document.getElementById('create-email').value.trim();
+  const password = document.getElementById('create-password').value;
+  const confirm  = document.getElementById('create-confirm').value;
+
+  let valid = true;
+  const emailErr = validateEmail(email);
+  if (emailErr) { showFieldError('create-email', emailErr); valid = false; }
+  const pwErr = validatePassword(password);
+  if (pwErr) { showFieldError('create-password', pwErr); valid = false; }
+  const matchErr = validateMatch(password, confirm);
+  if (matchErr) { showFieldError('create-confirm', matchErr); valid = false; }
+  if (!valid) return;
+
+  try {
+    await apiAuth('POST', '/v1/auth/register', { email, password });
+    closeModal('create');
+    showNotification(email + ' created successfully.', 'success', 3000);
+    await loadUsers();
+  } catch (err) {
+    if (err.status !== 401) {
+      const msg = err.detail && err.detail.toLowerCase().includes('already exists')
+        ? 'An account with this email already exists.'
+        : err.detail;
+      showModalNotif('modal-create-notif', msg);
+    }
+  }
+});
+
+// ── EDIT USER ─────────────────────────────────────────────────────────────────
+
+async function openEditModal(userId) {
+  editingUserId = userId;
+  clearFormErrors(['edit-email', 'edit-display-name']);
+  clearModalNotif('modal-edit-notif');
+
+  try {
+    const user = await apiAuth('GET', '/v1/admin/users/' + userId);
+    document.getElementById('edit-email').value        = user.email || '';
+    document.getElementById('edit-display-name').value = user.display_name || '';
+    openModal('edit');
+    document.getElementById('edit-email').focus();
+  } catch (err) {
+    if (err.status === 404) {
+      showNotification('User not found. Refreshing list.');
+      await loadUsers();
+    } else if (err.status !== 401) {
+      showNotification(err.detail);
+    }
+  }
+}
+
+document.getElementById('btn-edit-cancel').addEventListener('click', () => closeModal('edit'));
+
+document.getElementById('form-edit').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['edit-email', 'edit-display-name']);
+  clearModalNotif('modal-edit-notif');
+
+  const email       = document.getElementById('edit-email').value.trim();
+  const displayName = document.getElementById('edit-display-name').value.trim();
+
+  const emailErr = validateEmail(email);
+  if (emailErr) { showFieldError('edit-email', emailErr); return; }
+
+  try {
+    await apiAuth('PATCH', '/v1/admin/users/' + editingUserId, {
+      email,
+      display_name: displayName || null,
+    });
+    closeModal('edit');
+    showNotification('User updated.', 'success', 3000);
+    await loadUsers();
+  } catch (err) {
+    if (err.status === 404) {
+      closeModal('edit');
+      showNotification('User not found. Refreshing list.');
+      await loadUsers();
+    } else if (err.status !== 401) {
+      showModalNotif('modal-edit-notif', err.detail);
+    }
+  }
+});
+
+// ── RESET PASSWORD (admin) ────────────────────────────────────────────────────
+
+function openResetPwModal(userId, email) {
+  editingUserId = userId;
+  editingEmail  = email;
+  clearFormErrors(['reset-new-pw', 'reset-confirm-pw']);
+  clearModalNotif('modal-reset-pw-notif');
+  document.getElementById('reset-pw-email').textContent = email;
+  document.getElementById('form-reset-pw').reset();
+  openModal('reset-pw');
+  document.getElementById('reset-new-pw').focus();
+}
+
+document.getElementById('btn-reset-pw-cancel').addEventListener('click', () => closeModal('reset-pw'));
+
+document.getElementById('form-reset-pw').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['reset-new-pw', 'reset-confirm-pw']);
+  clearModalNotif('modal-reset-pw-notif');
+
+  const newPw   = document.getElementById('reset-new-pw').value;
+  const confirm = document.getElementById('reset-confirm-pw').value;
+
+  let valid = true;
+  const pwErr = validatePassword(newPw);
+  if (pwErr) { showFieldError('reset-new-pw', pwErr); valid = false; }
+  const matchErr = validateMatch(newPw, confirm);
+  if (matchErr) { showFieldError('reset-confirm-pw', matchErr); valid = false; }
+  if (!valid) return;
+
+  try {
+    await apiAuth('POST', '/v1/admin/users/' + editingUserId + '/password', { new_password: newPw });
+    closeModal('reset-pw');
+    showNotification('Password reset successfully.', 'success', 3000);
+  } catch (err) {
+    if (err.status === 404) {
+      closeModal('reset-pw');
+      showNotification('User not found. Refreshing list.');
+      await loadUsers();
+    } else if (err.status !== 401) {
+      showModalNotif('modal-reset-pw-notif', err.detail);
+    }
+  }
+});
+
+// ── CHANGE OWN PASSWORD ───────────────────────────────────────────────────────
+
+document.getElementById('btn-change-pw').addEventListener('click', () => {
+  clearFormErrors(['change-current-pw', 'change-new-pw', 'change-confirm-pw']);
+  clearModalNotif('modal-change-pw-notif');
+  document.getElementById('form-change-pw').reset();
+  openModal('change-pw');
+  document.getElementById('change-current-pw').focus();
+});
+
+document.getElementById('btn-change-pw-cancel').addEventListener('click', () => closeModal('change-pw'));
+
+document.getElementById('form-change-pw').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearFormErrors(['change-current-pw', 'change-new-pw', 'change-confirm-pw']);
+  clearModalNotif('modal-change-pw-notif');
+
+  const current = document.getElementById('change-current-pw').value;
+  const newPw   = document.getElementById('change-new-pw').value;
+  const confirm = document.getElementById('change-confirm-pw').value;
+
+  let valid = true;
+  if (!current) { showFieldError('change-current-pw', 'This field is required.'); valid = false; }
+  const pwErr = validatePassword(newPw);
+  if (pwErr) { showFieldError('change-new-pw', pwErr); valid = false; }
+  const matchErr = validateMatch(newPw, confirm);
+  if (matchErr) { showFieldError('change-confirm-pw', matchErr); valid = false; }
+  if (!valid) return;
+
+  try {
+    // Use api() directly (not apiAuth) because 401 here means "wrong current password"
+    await api('POST', '/v1/auth/change-password', {
+      current_password: current,
+      new_password: newPw,
+    });
+    closeModal('change-pw');
+    showNotification('Password changed.', 'success', 3000);
+  } catch (err) {
+    if (err.status === 401) {
+      if (err.detail && err.detail.toLowerCase().includes('current password')) {
+        showModalNotif('modal-change-pw-notif', 'Current password is incorrect.');
+      } else {
+        clearSession();
+        closeModal('change-pw');
+        showNotification('Session expired. Please sign in again.');
+        showView('login');
+      }
+    } else {
+      showModalNotif('modal-change-pw-notif', err.detail);
+    }
+  }
+});
+
+// ── DELETE USER ───────────────────────────────────────────────────────────────
+
+function openDeleteModal(userId, email) {
+  editingUserId = userId;
+  editingEmail  = email;
+  clearModalNotif('modal-delete-notif');
+  document.getElementById('delete-email-label').textContent = email;
+  openModal('confirm-delete');
+}
+
+document.getElementById('btn-delete-cancel').addEventListener('click', () => closeModal('confirm-delete'));
+
+document.getElementById('btn-delete-confirm').addEventListener('click', async () => {
+  clearModalNotif('modal-delete-notif');
+  const emailToShow = editingEmail;
+
+  try {
+    await apiAuth('DELETE', '/v1/admin/users/' + editingUserId);
+    closeModal('confirm-delete');
+    showNotification(emailToShow + ' deleted.', 'success', 3000);
+    await loadUsers();
+  } catch (err) {
+    if (err.status === 400 || err.status === 404) {
+      if (err.status === 404) { closeModal('confirm-delete'); await loadUsers(); }
+      showModalNotif('modal-delete-notif', err.detail);
+    } else if (err.status !== 401) {
+      showModalNotif('modal-delete-notif', err.detail);
+    }
+  }
+});
+
+// ── GET TOKEN ─────────────────────────────────────────────────────────────────
+
+async function openGetTokenModal(userId, email) {
+  clearModalNotif('modal-get-token-notif');
+  document.getElementById('token-email-label').textContent = email;
+  document.getElementById('token-display-area').style.display = 'none';
+  document.getElementById('token-value').value = '';
+  document.getElementById('btn-copy-token').style.display = 'none';
+  document.getElementById('btn-copy-token').textContent = 'Copy Token';
+  openModal('get-token');
+
+  try {
+    const data = await apiAuth('POST', '/v1/admin/users/' + userId + '/token');
+    document.getElementById('token-value').value = data.access_token;
+    const ttlHours = Math.round((data.expires_in || 86400) / 3600);
+    document.getElementById('token-ttl-label').textContent = ttlHours + 'h';
+    document.getElementById('token-display-area').style.display = 'block';
+    document.getElementById('btn-copy-token').style.display = '';
+  } catch (err) {
+    if (err.status !== 401) {
+      showModalNotif('modal-get-token-notif', err.detail || 'Failed to generate token.');
+    }
+  }
+}
+
+document.getElementById('btn-get-token-close').addEventListener('click', () => closeModal('get-token'));
+
+document.getElementById('btn-copy-token').addEventListener('click', () => {
+  const val = document.getElementById('token-value').value;
+  if (!val) return;
+  const btn = document.getElementById('btn-copy-token');
+  navigator.clipboard.writeText(val).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Token'; }, 2000);
+  }).catch(() => {
+    document.getElementById('token-value').select();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ═════════════════════════════════════════════════════════════════════════════
+
+const MASK = '••••••••';
+
+// Static metadata: used for field labels, hints, and grouping.
+// Backend keys are enriched at runtime with descriptions from .env.reference.
+const FIELD_META = {
+  backend: {
+    LOCAL_MODE:              { group: 'General',             label: 'Local Mode',            hint: 'true — disables cloud auth/storage' },
+    API_BASE_URL:            { group: 'General',             label: 'API Base URL',          hint: 'Public URL of this backend' },
+    PORT:                    { group: 'General',             label: 'Port',                  hint: 'HTTP listen port (default 8080)' },
+    KMP_DUPLICATE_LIB_OK:    { group: 'General',             label: 'KMP Duplicate Lib OK',  hint: 'Required on macOS with PyTorch+faster-whisper' },
+    AUTO_PERSIST_TRANSCRIPTS:{ group: 'General',             label: 'Auto-Persist Transcripts', hint: 'Save completed transcripts as Conversations' },
+    AUTH_PROVIDER:           { group: 'Auth & Security',     label: 'Auth Provider',         hint: 'local | firebase' },
+    LOCAL_JWT_SECRET:        { group: 'Auth & Security',     label: 'JWT Secret',            hint: 'Signs access tokens (HS256)' },
+    LOCAL_JWT_TTL_SECONDS:   { group: 'Auth & Security',     label: 'JWT TTL (seconds)',     hint: 'Token lifetime. Default: 86400 (24 h)' },
+    ENCRYPTION_SECRET:       { group: 'Auth & Security',     label: 'Encryption Secret',     hint: 'AES-256-GCM per-user key derivation' },
+    ADMIN_KEY:               { group: 'Auth & Security',     label: 'Admin Key',             hint: 'Bearer token dev bypass (leave empty in prod)' },
+    BOOTSTRAP_ADMIN_EMAIL:   { group: 'Auth & Security',     label: 'Bootstrap Admin Email', hint: 'Auto-created on first boot if set' },
+    BOOTSTRAP_ADMIN_PASSWORD:{ group: 'Auth & Security',     label: 'Bootstrap Admin Password', hint: 'Required when BOOTSTRAP_ADMIN_EMAIL is set' },
+    LLM_PROVIDER:            { group: 'LLM',                 label: 'LLM Provider',          hint: 'openai | anthropic | groq | ollama' },
+    OPENAI_API_KEY:          { group: 'LLM',                 label: 'OpenAI API Key',        hint: '' },
+    ANTHROPIC_API_KEY:       { group: 'LLM',                 label: 'Anthropic API Key',     hint: '' },
+    GROQ_API_KEY:            { group: 'LLM',                 label: 'Groq API Key',          hint: '' },
+    GOOGLE_API_KEY:          { group: 'LLM',                 label: 'Google (Gemini) Key',   hint: '' },
+    OLLAMA_HOST:             { group: 'LLM',                 label: 'Ollama Host',           hint: 'e.g. http://localhost:11434' },
+    OLLAMA_MODEL:            { group: 'LLM',                 label: 'Ollama Model',          hint: 'e.g. llama3.1, qwen3:4b' },
+    OLLAMA_CHAT_MODEL:       { group: 'LLM',                 label: 'Ollama Chat Model',     hint: 'Override for chat; falls back to OLLAMA_MODEL' },
+    OLLAMA_EXTRACT_MODEL:    { group: 'LLM',                 label: 'Ollama Extract Model',  hint: 'Override for extraction; falls back to OLLAMA_MODEL' },
+    OLLAMA_TIMEOUT:          { group: 'LLM',                 label: 'Ollama Timeout (s)',    hint: 'Seconds before giving up on a response' },
+    STT_PROVIDER:            { group: 'Speech-to-Text',      label: 'STT Provider',          hint: 'deepgram | local' },
+    DEEPGRAM_API_KEY:        { group: 'Speech-to-Text',      label: 'Deepgram API Key',      hint: '' },
+    LOCAL_WHISPER_MODEL:     { group: 'Speech-to-Text',      label: 'Whisper Model',         hint: 'tiny | base | small | medium | large-v2 | large-v3' },
+    LOCAL_WHISPER_DEVICE:    { group: 'Speech-to-Text',      label: 'Whisper Device',        hint: 'cpu | cuda | mps' },
+    LOCAL_WHISPER_COMPUTE_TYPE: { group: 'Speech-to-Text',   label: 'Whisper Compute',       hint: 'int8 | float16 | float32' },
+    LOCAL_VAD_BACKEND:       { group: 'Speech-to-Text',      label: 'VAD Backend',           hint: 'energy | silero' },
+    LOCAL_VAD_RMS_THRESHOLD: { group: 'Speech-to-Text',      label: 'VAD RMS Threshold',     hint: 'Silence threshold (energy mode). Typical: 200–600' },
+    VAD_GATE_MODE:           { group: 'Speech-to-Text',      label: 'VAD Gate Mode',         hint: 'off | shadow | active' },
+    EMBEDDINGS_PROVIDER:     { group: 'Embeddings & Vector', label: 'Embeddings Provider',   hint: 'openai | local' },
+    LOCAL_EMBEDDINGS_MODEL:  { group: 'Embeddings & Vector', label: 'Embeddings Model',      hint: 'HuggingFace model name' },
+    LOCAL_EMBEDDINGS_DIM:    { group: 'Embeddings & Vector', label: 'Embeddings Dimension',  hint: 'Must match model output dim exactly' },
+    OPENAI_EMBEDDINGS_DIM:   { group: 'Embeddings & Vector', label: 'OpenAI Embeddings Dim', hint: '3072 for text-embedding-3-large' },
+    VECTOR_DB_PROVIDER:      { group: 'Embeddings & Vector', label: 'Vector DB Provider',    hint: 'qdrant | pinecone' },
+    QDRANT_URL:              { group: 'Embeddings & Vector', label: 'Qdrant URL',            hint: 'e.g. http://localhost:6333' },
+    QDRANT_API_KEY:          { group: 'Embeddings & Vector', label: 'Qdrant API Key',        hint: 'Required for Qdrant Cloud; leave empty for local' },
+    PINECONE_API_KEY:        { group: 'Embeddings & Vector', label: 'Pinecone API Key',      hint: '' },
+    PINECONE_INDEX_NAME:     { group: 'Embeddings & Vector', label: 'Pinecone Index',        hint: '' },
+    DB_PROVIDER:             { group: 'Database',            label: 'DB Provider',           hint: 'sqlite | firestore | postgres' },
+    SQLITE_PATH:             { group: 'Database',            label: 'SQLite Path',           hint: 'e.g. ./omi_local.db' },
+    SQL_URL:                 { group: 'Database',            label: 'SQL URL',               hint: 'Full SQLAlchemy URL (overrides SQLITE_PATH)' },
+    REDIS_DB_HOST:           { group: 'Redis',               label: 'Redis Host',            hint: 'Leave empty to run without Redis' },
+    REDIS_DB_PORT:           { group: 'Redis',               label: 'Redis Port',            hint: 'Default: 6379' },
+    REDIS_DB_PASSWORD:       { group: 'Redis',               label: 'Redis Password',        hint: 'Leave empty for no-auth Redis' },
+    EVENT_PROVIDER:          { group: 'Events',              label: 'Event Provider',        hint: 'websocket | pusher' },
+    SEARCH_PROVIDER:         { group: 'Search',              label: 'Search Provider',       hint: 'local | typesense | disabled' },
+    TYPESENSE_HOST:          { group: 'Search',              label: 'Typesense Host',        hint: 'Hostname (no protocol)' },
+    TYPESENSE_HOST_PORT:     { group: 'Search',              label: 'Typesense Port',        hint: '443 for cloud, 8108 for self-hosted' },
+    TYPESENSE_API_KEY:       { group: 'Search',              label: 'Typesense Key',         hint: '' },
+    TTS_PROVIDER:            { group: 'Text-to-Speech',      label: 'TTS Provider',          hint: 'openai | elevenlabs | disabled' },
+    ELEVENLABS_API_KEY:      { group: 'Text-to-Speech',      label: 'ElevenLabs Key',        hint: '' },
+    ENABLE_DIARIZATION:      { group: 'Diarization',         label: 'Enable Diarization',    hint: 'true | false (false required in local mode)' },
+    LANGSMITH_TRACING:       { group: 'Observability',       label: 'LangSmith Tracing',     hint: 'true | false' },
+    LANGSMITH_API_KEY:       { group: 'Observability',       label: 'LangSmith API Key',     hint: '' },
+    LANGSMITH_PROJECT:       { group: 'Observability',       label: 'LangSmith Project',     hint: '' },
+    RATE_LIMIT_SHADOW_MODE:  { group: 'Rate Limiting',       label: 'Rate Limit Shadow Mode',hint: 'true = log-only, false = enforce' },
+    RATE_LIMIT_BOOST:        { group: 'Rate Limiting',       label: 'Rate Limit Boost',      hint: 'Multiplier on all thresholds (1.0 = default)' },
+  },
+  desktop: {
+    OMI_PYTHON_API_URL:  { group: 'API',     label: 'Python API URL',       hint: 'Points to the local Omi backend' },
+    OMI_DESKTOP_API_URL: { group: 'API',     label: 'Desktop API URL',      hint: 'Cloud API for cloud features' },
+    DEEPGRAM_API_KEY:    { group: 'AI Keys', label: 'Deepgram API Key',     hint: 'Speech-to-text' },
+    GEMINI_API_KEY:      { group: 'AI Keys', label: 'Gemini API Key',       hint: 'LLM for Desktop app' },
+  },
+  ios: {
+    API_BASE_URL:          { group: 'API',       label: 'API Base URL',          hint: 'Primary backend URL' },
+    STAGING_API_URL:       { group: 'API',       label: 'Staging API URL',       hint: 'Staging environment URL' },
+    OPENAI_API_KEY:        { group: 'AI Keys',   label: 'OpenAI API Key',        hint: '' },
+    GOOGLE_MAPS_API_KEY:   { group: 'AI Keys',   label: 'Google Maps API Key',   hint: '' },
+    GOOGLE_CLIENT_ID:      { group: 'Auth',      label: 'Google Client ID',      hint: '' },
+    GOOGLE_CLIENT_SECRET:  { group: 'Auth',      label: 'Google Client Secret',  hint: '' },
+    USE_WEB_AUTH:          { group: 'Auth',      label: 'Use Web Auth',          hint: 'true | false' },
+    USE_AUTH_CUSTOM_TOKEN: { group: 'Auth',      label: 'Use Custom Token Auth', hint: 'true | false' },
+    POSTHOG_API_KEY:       { group: 'Analytics', label: 'PostHog API Key',       hint: '' },
+  },
+};
+
+let settingsData = null;
+let configMeta   = {};  // from /v1/admin/config/meta (.env.reference descriptions)
+
+// ── Settings navigation ───────────────────────────────────────────────────────
+
+document.getElementById('btn-settings').addEventListener('click', async () => {
+  showView('settings');
+  await loadSettings();
+});
+document.getElementById('btn-docs-from-settings').addEventListener('click', async () => {
+  showView('docs');
+  await loadDocsList();
+});
+document.getElementById('btn-back-from-settings').addEventListener('click', () => showView('users'));
+
+// Settings tab switching
+document.querySelectorAll('[data-settings-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-settings-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#view-settings .tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('settings-tab-' + btn.dataset.settingsTab).classList.add('active');
+  });
+});
+
+// Save buttons
+['backend', 'desktop', 'ios'].forEach(t => {
+  document.getElementById('btn-save-' + t).addEventListener('click', () => saveSettings(t));
+});
+
+async function loadSettings() {
+  try {
+    [settingsData, configMeta] = await Promise.all([
+      apiAuth('GET', '/v1/admin/config'),
+      apiAuth('GET', '/v1/admin/config/meta').catch(() => ({})),
+    ]);
+    ['backend', 'desktop', 'ios'].forEach(t => renderSettingsTab(t, settingsData[t]));
+    await loadBackupsList();
+  } catch (err) {
+    if (err.status !== 401) showNotification('Failed to load settings: ' + err.detail);
+  }
+}
+
+async function loadBackupsList() {
+  try {
+    const data = await apiAuth('GET', '/v1/admin/config/backups');
+    renderBackupsList(data);
+  } catch (err) {
+    // Non-critical — silently ignore if endpoint fails
+  }
+}
+
+function renderBackupsList(data) {
+  const section = document.getElementById('backups-section');
+  const list    = document.getElementById('backups-list');
+
+  if (!data || !data.backups || data.backups.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  // Show most recent 10, newest first (files are sorted ascending by name = timestamp)
+  const recent = [...data.backups].reverse().slice(0, 10);
+  list.innerHTML = recent.map(b =>
+    '<div style="padding:3px 0; font-family:monospace;">' + escHtml(b.name) + '</div>'
+  ).join('');
+
+  if (data.backups.length > 10) {
+    list.innerHTML += '<div style="padding:3px 0; color:#aaa;">…and ' +
+      (data.backups.length - 10) + ' older backup(s)</div>';
+  }
+}
+
+function renderSettingsTab(target, tabData) {
+  const container = document.getElementById(target + '-fields-container');
+  const badge     = document.getElementById(target + '-file-badge');
+
+  badge.style.display = 'block';
+  if (tabData && tabData.exists) {
+    badge.className = 'file-badge exists';
+    badge.textContent = 'Writes to: ' + tabData.path;
+  } else {
+    badge.className = 'file-badge missing';
+    badge.textContent = tabData
+      ? 'File does not exist yet — will be created on first save (' + tabData.path + ')'
+      : 'File info unavailable';
+  }
+
+  container.innerHTML = '';
+  const values = (tabData && tabData.values) ? tabData.values : {};
+  const meta   = FIELD_META[target] || {};
+
+  if (Object.keys(values).length === 0) {
+    container.innerHTML = '<p class="settings-empty">No settings found. Values will appear here once the file is created.</p>';
+    return;
+  }
+
+  // Group fields, preserving insertion order
+  const groups = {};
+  const groupOrder = [];
+  for (const [key, value] of Object.entries(values)) {
+    const m = meta[key];
+    const group = m ? m.group : 'Other';
+    if (!groups[group]) { groups[group] = []; groupOrder.push(group); }
+    groups[group].push({ key, value, m: m || null });
+  }
+
+  for (const groupName of groupOrder) {
+    const section = document.createElement('div');
+    section.className = 'settings-section';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'settings-section-header';
+    hdr.textContent = groupName;
+    section.appendChild(hdr);
+
+    const grid = document.createElement('div');
+    grid.className = 'settings-grid';
+
+    for (const { key, value, m } of groups[groupName]) {
+      const isMasked = (value === MASK);
+      const wrap = document.createElement('div');
+      wrap.className = 'settings-field';
+
+      // Build label row with optional tooltip
+      const labelRow = document.createElement('div');
+      labelRow.className = 'field-label-row';
+
+      const lbl = document.createElement('label');
+      lbl.setAttribute('for', 'cfg-' + target + '-' + key);
+      lbl.textContent = m ? m.label : key;
+      labelRow.appendChild(lbl);
+
+      // Collect tooltip text: prefer .env.reference description, fall back to hint
+      const refDesc   = (target === 'backend' && configMeta[key]) ? configMeta[key].description : '';
+      const hintText  = m && m.hint ? m.hint : '';
+      const tipText   = refDesc || hintText;
+
+      if (tipText) {
+        const infoWrap = document.createElement('div');
+        infoWrap.className = 'info-wrap';
+
+        const infoBtn = document.createElement('button');
+        infoBtn.className = 'info-btn';
+        infoBtn.textContent = 'i';
+        infoBtn.type = 'button';
+        infoBtn.setAttribute('tabindex', '-1');
+
+        const tip = document.createElement('div');
+        tip.className = 'tooltip-box';
+        tip.textContent = tipText;
+
+        infoWrap.appendChild(infoBtn);
+        infoWrap.appendChild(tip);
+        labelRow.appendChild(infoWrap);
+      }
+
+      const inp = document.createElement('input');
+      inp.type = isMasked ? 'password' : 'text';
+      inp.id = 'cfg-' + target + '-' + key;
+      inp.dataset.key    = key;
+      inp.dataset.masked = isMasked ? '1' : '0';
+      inp.value = isMasked ? '' : value;
+      if (isMasked) inp.placeholder = 'Leave blank to keep current value';
+
+      wrap.appendChild(labelRow);
+      wrap.appendChild(inp);
+      grid.appendChild(wrap);
+    }
+
+    section.appendChild(grid);
+    container.appendChild(section);
+  }
+}
+
+async function saveSettings(target) {
+  if (!settingsData) return;
+  const container = document.getElementById(target + '-fields-container');
+  const inputs    = container.querySelectorAll('input[data-key]');
+
+  const updates = {};
+  for (const inp of inputs) {
+    if (inp.dataset.masked === '1' && !inp.value) continue;
+    updates[inp.dataset.key] = inp.value;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    showNotification('No changes to save.', 'success', 2000);
+    return;
+  }
+
+  const labels = { backend: 'Backend', desktop: 'Desktop', ios: 'iOS' };
+  const btn = document.getElementById('btn-save-' + target);
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    const result = await apiAuth('POST', '/v1/admin/config', { target, updates });
+
+    let msg = 'Saved ' + result.written + ' value(s).';
+    if (result.backup) {
+      // Show just the filename, not the full path
+      const backupName = result.backup.replace(/.*[\\/]/, '');
+      msg += '  Backup: ' + backupName;
+    }
+    showNotification(msg, 'success', 5000);
+
+    // Refresh the tab so masks are re-applied to any newly-set secrets
+    settingsData = await apiAuth('GET', '/v1/admin/config');
+    renderSettingsTab(target, settingsData[target]);
+    // Refresh backup list
+    await loadBackupsList();
+  } catch (err) {
+    if (err.status !== 401) showNotification('Save failed: ' + err.detail);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save ' + labels[target] + ' Config';
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  DOCS VIEWER
+// ═════════════════════════════════════════════════════════════════════════════
+
+let docsCatalog = null;
+
+document.getElementById('btn-docs').addEventListener('click', async () => {
+  showView('docs');
+  await loadDocsList();
+});
+document.getElementById('btn-settings-from-docs').addEventListener('click', async () => {
+  showView('settings');
+  await loadSettings();
+});
+document.getElementById('btn-back-from-docs').addEventListener('click', () => showView('users'));
+
+async function loadDocsList() {
+  if (docsCatalog) { renderDocsSidebar(docsCatalog); return; }
+  try {
+    docsCatalog = await apiAuth('GET', '/v1/admin/docs');
+    renderDocsSidebar(docsCatalog);
+  } catch (err) {
+    if (err.status !== 401) {
+      document.getElementById('docs-sidebar').innerHTML =
+        '<p style="padding:14px; color:#c0392b; font-size:12px;">Failed to load: ' + escHtml(err.detail) + '</p>';
+    }
+  }
+}
+
+function renderDocsSidebar(catalog) {
+  const sidebar = document.getElementById('docs-sidebar');
+  sidebar.innerHTML = '';
+
+  catalog.forEach(section => {
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'docs-sidebar-section';
+
+    const h4 = document.createElement('h4');
+    h4.textContent = section.section;
+    sectionDiv.appendChild(h4);
+
+    section.files.forEach(file => {
+      const btn = document.createElement('button');
+      btn.className = 'docs-sidebar-item' + (file.exists ? '' : ' missing');
+      btn.textContent = file.title;
+      btn.title = file.path;
+      btn.disabled = !file.exists;
+
+      if (file.exists) {
+        btn.addEventListener('click', () => {
+          sidebar.querySelectorAll('.docs-sidebar-item').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('docs-title').textContent = file.title;
+          loadDocContent(file.path);
+        });
+      }
+
+      sectionDiv.appendChild(btn);
+    });
+
+    sidebar.appendChild(sectionDiv);
+  });
+}
+
+async function loadDocContent(path) {
+  const content = document.getElementById('docs-content');
+  content.innerHTML = '<p class="docs-loading">Loading…</p>';
+
+  try {
+    const data = await apiAuth('GET', '/v1/admin/docs/content?path=' + encodeURIComponent(path));
+    const div = document.createElement('div');
+    div.className = 'md-body';
+    div.innerHTML = renderMarkdown(data.content);
+    content.innerHTML = '';
+    content.appendChild(div);
+    content.scrollTop = 0;
+  } catch (err) {
+    if (err.status !== 401) {
+      content.innerHTML = '<p style="color:#c0392b; padding:20px 0;">' + escHtml(err.detail) + '</p>';
+    }
+  }
+}
+
+// ── Minimal markdown renderer ─────────────────────────────────────────────────
+
+function renderMarkdown(md) {
+  const lines = md.split('\n');
+  const out   = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Fenced code block
+    if (line.startsWith('```')) {
+      const lang = escHtml(line.slice(3).trim());
+      const code = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++;
+      out.push('<pre><code' + (lang ? ' class="lang-' + lang + '"' : '') + '>' +
+               escHtml(code.join('\n')) + '</code></pre>');
+      continue;
+    }
+
+    // Heading
+    const hm = line.match(/^(#{1,4})\s+(.+)$/);
+    if (hm) {
+      const lvl = hm[1].length;
+      out.push('<h' + lvl + '>' + inlineFmt(hm[2]) + '</h' + lvl + '>');
+      i++;
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim()) || /^\*\*\*+$/.test(line.trim())) {
+      out.push('<hr>'); i++; continue;
+    }
+
+    // Blockquote (collect consecutive lines)
+    if (line.startsWith('> ')) {
+      const ql = [];
+      while (i < lines.length && lines[i].startsWith('> ')) {
+        ql.push(lines[i].slice(2));
+        i++;
+      }
+      out.push('<blockquote>' + inlineFmt(ql.join('\n')) + '</blockquote>');
+      continue;
+    }
+
+    // Table (header row + separator row)
+    if (line.includes('|') && i + 1 < lines.length && /^\|[-: |]+\|$/.test(lines[i + 1])) {
+      const hcells = splitTableRow(line).map(c => '<th>' + inlineFmt(c) + '</th>').join('');
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && lines[i].trim().startsWith('|')) {
+        const cells = splitTableRow(lines[i]).map(c => '<td>' + inlineFmt(c) + '</td>').join('');
+        rows.push('<tr>' + cells + '</tr>');
+        i++;
+      }
+      out.push('<table><thead><tr>' + hcells + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>');
+      continue;
+    }
+
+    // Unordered list
+    if (/^[-*+] /.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*+] /.test(lines[i])) {
+        items.push('<li>' + inlineFmt(lines[i].replace(/^[-*+] /, '')) + '</li>');
+        i++;
+      }
+      out.push('<ul>' + items.join('') + '</ul>');
+      continue;
+    }
+
+    // Ordered list
+    if (/^\d+\. /.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push('<li>' + inlineFmt(lines[i].replace(/^\d+\. /, '')) + '</li>');
+        i++;
+      }
+      out.push('<ol>' + items.join('') + '</ol>');
+      continue;
+    }
+
+    // Blank line
+    if (!line.trim()) { i++; continue; }
+
+    // Paragraph — collect consecutive non-special lines
+    const pl = [];
+    while (i < lines.length && lines[i].trim() &&
+           !lines[i].match(/^#{1,4} /) && !lines[i].startsWith('```') &&
+           !lines[i].startsWith('> ')  && !/^[-*+] /.test(lines[i]) &&
+           !/^\d+\. /.test(lines[i])   && !/^---+$/.test(lines[i].trim()) &&
+           !(lines[i].includes('|') && i + 1 < lines.length && /^\|[-: |]+\|$/.test(lines[i + 1]))) {
+      pl.push(lines[i]);
+      i++;
+    }
+    if (pl.length) out.push('<p>' + inlineFmt(pl.join('<br>')) + '</p>');
+  }
+
+  return out.join('\n');
+}
+
+function splitTableRow(line) {
+  return line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+}
+
+function inlineFmt(text) {
+  let s = escHtml(text);
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g,   '<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*(.+?)\*\*/g,        '<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g,        '<em>$1</em>');
+  s = s.replace(/_([^_\n]+)_/g,          '<em>$1</em>');
+  s = s.replace(/`([^`\n]+)`/g,          '<code>$1</code>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  URL REFERENCE
+// ═════════════════════════════════════════════════════════════════════════════
+
+const URL_REGISTRY = [
+  {
+    id: 'local',
+    title: 'Local Services',
+    subtitle: 'Running on this machine',
+    badge: 'local',
+    rows: [
+      {
+        name: 'Python Backend',
+        urlFn: () => window.location.origin,
+        purpose: 'Core API — auth, conversations, memories, chat, STT, embeddings',
+        envVar: 'API_BASE_URL',
+        envTarget: 'backend',
+        note: 'This server',
+      },
+      {
+        name: 'Admin Panel',
+        urlFn: () => window.location.origin + '/admin',
+        purpose: 'This UI — user management, settings, docs',
+        envVar: null,
+        note: 'Served by the Python backend',
+      },
+      {
+        name: 'API Docs (Swagger)',
+        urlFn: () => window.location.origin + '/docs',
+        purpose: 'Interactive OpenAPI documentation for all local endpoints',
+        envVar: null,
+        note: 'Served by the Python backend',
+      },
+      {
+        name: 'Desktop Rust Backend',
+        url: 'http://localhost:10201',
+        purpose: 'Handles BLE device (Omi pin) audio streaming and Desktop app features',
+        envVar: 'OMI_DESKTOP_API_URL',
+        envTarget: 'desktop',
+        note: 'Started by Desktop/run.sh; overwritten at runtime when Cloudflare tunnel is active',
+      },
+      {
+        name: 'Qdrant Vector DB',
+        url: 'http://localhost:6333',
+        purpose: 'Local vector store for semantic search over memories and conversations',
+        envVar: 'QDRANT_URL',
+        envTarget: 'backend',
+        note: 'Required when VECTOR_DB_PROVIDER=qdrant',
+      },
+      {
+        name: 'Ollama',
+        url: 'http://localhost:11434',
+        purpose: 'Local LLM inference server — chat, extraction, embeddings',
+        envVar: 'OLLAMA_HOST',
+        envTarget: 'backend',
+        note: 'Required when LLM_PROVIDER=ollama or EMBEDDINGS_PROVIDER=local via Ollama',
+      },
+      {
+        name: 'Redis',
+        url: 'redis://localhost:6379',
+        purpose: 'Cache, rate limiting, pub/sub. Backend runs without it (fail-open)',
+        envVar: 'REDIS_DB_HOST / REDIS_DB_PORT',
+        envTarget: 'backend',
+        note: 'Optional — leave REDIS_DB_HOST empty to disable',
+      },
+    ],
+  },
+  {
+    id: 'cloud',
+    title: 'Production / Cloud Services',
+    subtitle: 'Used when local alternatives are not configured',
+    badge: 'cloud',
+    rows: [
+      {
+        name: 'Omi Python API',
+        url: 'https://api.omi.me',
+        purpose: 'Production backend. Default value of OMI_PYTHON_API_URL in Desktop — override to point at localhost for local development',
+        envVar: 'OMI_PYTHON_API_URL',
+        envTarget: 'desktop',
+        note: 'Desktop .env.example ships with this URL — change it for local mode',
+      },
+      {
+        name: 'OpenAI API',
+        url: 'https://api.openai.com',
+        purpose: 'Default LLM provider (gpt-4.1-mini, o4-mini) and default embeddings provider (text-embedding-3-large)',
+        envVar: 'LLM_PROVIDER / EMBEDDINGS_PROVIDER',
+        envTarget: 'backend',
+        note: 'Default for both; switch to ollama / local to go offline',
+      },
+      {
+        name: 'Deepgram',
+        url: 'https://api.deepgram.com',
+        purpose: 'Default cloud STT. Used by both the Python backend and the Desktop app directly',
+        envVar: 'DEEPGRAM_API_KEY',
+        envTarget: 'backend / desktop',
+        note: 'Switch STT_PROVIDER=local (faster-whisper) to go offline',
+      },
+      {
+        name: 'Google Gemini',
+        url: 'https://generativelanguage.googleapis.com',
+        purpose: 'LLM and embeddings used directly by the Desktop Swift app (GeminiClient.swift, EmbeddingService.swift). Hardcoded — no provider switch',
+        envVar: 'GEMINI_API_KEY',
+        envTarget: 'desktop',
+        note: 'Cannot be replaced without rewriting Desktop Swift clients',
+      },
+      {
+        name: 'Pinecone',
+        url: 'https://app.pinecone.io',
+        purpose: 'Default cloud vector DB for semantic search',
+        envVar: 'PINECONE_API_KEY',
+        envTarget: 'backend',
+        note: 'Switch VECTOR_DB_PROVIDER=qdrant to go offline',
+      },
+      {
+        name: 'Google Firebase',
+        url: 'https://firebase.google.com',
+        purpose: 'Default auth provider and default DB (Firestore). Also structurally embedded in the iOS app for authentication',
+        envVar: 'AUTH_PROVIDER / DB_PROVIDER',
+        envTarget: 'backend',
+        note: 'Switch AUTH_PROVIDER=local and DB_PROVIDER=sqlite for local backend. iOS app requires Firebase regardless',
+      },
+      {
+        name: 'Pusher',
+        url: 'https://pusher.com',
+        purpose: 'Default real-time event streaming between backend services',
+        envVar: 'EVENT_PROVIDER / HOSTED_PUSHER_API_URL',
+        envTarget: 'backend',
+        note: 'Switch EVENT_PROVIDER=websocket to go offline',
+      },
+      {
+        name: 'Cloudflare Tunnel',
+        url: null,
+        purpose: 'Exposes the local Rust backend publicly so the Omi BLE pin can connect from outside the LAN. URL is generated at runtime and written into OMI_DESKTOP_API_URL by run.sh',
+        envVar: 'OMI_DESKTOP_API_URL',
+        envTarget: 'desktop',
+        note: 'Skip with OMI_SKIP_TUNNEL=1 if pin connectivity outside LAN is not needed',
+      },
+      {
+        name: 'ElevenLabs',
+        url: 'https://api.elevenlabs.io',
+        purpose: 'TTS (text-to-speech) provider',
+        envVar: 'ELEVENLABS_API_KEY / TTS_PROVIDER',
+        envTarget: 'backend',
+        note: 'Disabled when key is absent',
+      },
+      {
+        name: 'LangSmith',
+        url: 'https://smith.langchain.com',
+        purpose: 'LLM call tracing and observability',
+        envVar: 'LANGSMITH_API_KEY / LANGSMITH_TRACING',
+        envTarget: 'backend',
+        note: 'Disabled by default; only active when LANGSMITH_TRACING=true',
+      },
+      {
+        name: 'Google Cloud Run',
+        url: 'https://cloud.google.com/run',
+        purpose: 'Hosts the production Rust backend. Hard-coded fallback URL in Desktop/run.sh when OMI_SKIP_BACKEND=1',
+        envVar: 'OMI_DESKTOP_API_URL',
+        envTarget: 'desktop',
+        note: 'Only reached when OMI_SKIP_BACKEND=1 is set in run.sh',
+      },
+    ],
+  },
+  {
+    id: 'external',
+    title: 'External Developer Tools',
+    subtitle: 'Dashboards and consoles for managing connected services',
+    badge: 'external',
+    rows: [
+      {
+        name: 'Firebase Console',
+        url: 'https://console.firebase.google.com',
+        purpose: 'Manage Firebase Auth, Firestore database, and project settings',
+        envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
+        envTarget: 'backend',
+      },
+      {
+        name: 'Google Cloud Console',
+        url: 'https://console.cloud.google.com',
+        purpose: 'Manage Cloud Run services, GCS buckets, and service account credentials',
+        envVar: null,
+      },
+      {
+        name: 'Pinecone Console',
+        url: 'https://app.pinecone.io',
+        purpose: 'Manage Pinecone indexes and API keys',
+        envVar: 'PINECONE_API_KEY',
+        envTarget: 'backend',
+      },
+      {
+        name: 'Qdrant Cloud',
+        url: 'https://cloud.qdrant.io',
+        purpose: 'Manage Qdrant Cloud clusters (not needed for local Qdrant Docker)',
+        envVar: 'QDRANT_API_KEY',
+        envTarget: 'backend',
+      },
+      {
+        name: 'Codemagic CI',
+        url: 'https://codemagic.io',
+        purpose: 'CI/CD for iOS and Android app builds and releases',
+        envVar: null,
+      },
+      {
+        name: 'PostHog',
+        url: 'https://us.posthog.com',
+        purpose: 'Analytics dashboard for iOS app events',
+        envVar: 'POSTHOG_API_KEY',
+        envTarget: 'ios',
+        note: 'Disabled when key is absent',
+      },
+      {
+        name: 'Anthropic Console',
+        url: 'https://console.anthropic.com',
+        purpose: 'Manage Anthropic API keys and usage',
+        envVar: 'ANTHROPIC_API_KEY',
+        envTarget: 'backend',
+      },
+      {
+        name: 'Groq Console',
+        url: 'https://console.groq.com',
+        purpose: 'Manage Groq API keys for fast LLM inference',
+        envVar: 'GROQ_API_KEY',
+        envTarget: 'backend',
+      },
+    ],
+  },
+];
+
+// ── URLs navigation ───────────────────────────────────────────────────────────
+
+document.getElementById('btn-urls').addEventListener('click', () => {
+  showView('urls');
+  renderUrlsPage();
+});
+document.getElementById('btn-urls-from-settings').addEventListener('click', () => {
+  showView('urls');
+  renderUrlsPage();
+});
+document.getElementById('btn-urls-from-docs').addEventListener('click', () => {
+  showView('urls');
+  renderUrlsPage();
+});
+document.getElementById('btn-back-from-urls').addEventListener('click', () => showView('users'));
+document.getElementById('btn-settings-from-urls').addEventListener('click', async () => {
+  showView('settings');
+  await loadSettings();
+});
+document.getElementById('btn-docs-from-urls').addEventListener('click', async () => {
+  showView('docs');
+  await loadDocsList();
+});
+
+// ── URLs renderer ─────────────────────────────────────────────────────────────
+
+let _urlsRendered = false;
+
+function renderUrlsPage() {
+  if (_urlsRendered) return;
+  _urlsRendered = true;
+
+  const wrap = document.getElementById('urls-content');
+  wrap.innerHTML = '';
+
+  URL_REGISTRY.forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'urls-group';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'urls-group-header';
+    hdr.innerHTML =
+      '<h2>' + escHtml(group.title) + '</h2>' +
+      '<span class="group-sub">' + escHtml(group.subtitle) + '</span>' +
+      '<span class="url-badge ' + group.id + '">' + escHtml(group.badge) + '</span>';
+    groupDiv.appendChild(hdr);
+
+    // Table
+    const table = document.createElement('table');
+    table.className = 'urls-table';
+    table.innerHTML =
+      '<thead><tr>' +
+        '<th style="width:18%">Service</th>' +
+        '<th style="width:26%">URL</th>' +
+        '<th>Purpose</th>' +
+        '<th style="width:18%">Env Var</th>' +
+      '</tr></thead>';
+
+    const tbody = document.createElement('tbody');
+
+    group.rows.forEach(row => {
+      const url = row.urlFn ? row.urlFn() : row.url;
+
+      let urlCell;
+      if (url) {
+        const isClickable = url.startsWith('http') || url.startsWith('redis');
+        if (isClickable) {
+          urlCell = '<a class="url-link" href="' + escHtml(url) + '" target="_blank" rel="noopener">' +
+                    escHtml(url) + '</a>';
+        } else {
+          urlCell = '<span class="url-nolink">' + escHtml(url) + '</span>';
+        }
+      } else {
+        urlCell = '<span style="color:#bbb; font-size:12px;">generated at runtime</span>';
+      }
+
+      let purposeCell = '<div class="url-purpose">' + escHtml(row.purpose) + '</div>';
+      if (row.note) {
+        purposeCell += '<div class="url-note">' + escHtml(row.note) + '</div>';
+      }
+
+      let envCell = '';
+      if (row.envVar) {
+        const vars = row.envVar.split(' / ');
+        envCell = vars.map(v => '<span class="url-env">' + escHtml(v.trim()) + '</span>').join(' ');
+        if (row.envTarget) {
+          envCell += '<div class="url-note">' + escHtml(row.envTarget) + ' .env</div>';
+        }
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><strong>' + escHtml(row.name) + '</strong></td>' +
+        '<td>' + urlCell + '</td>' +
+        '<td>' + purposeCell + '</td>' +
+        '<td>' + envCell + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    groupDiv.appendChild(table);
+    wrap.appendChild(groupDiv);
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', init);
+
+// ═══════════════════════════════════════════════════════
+// HISTORY VIEW
+// ═══════════════════════════════════════════════════════
+
+const HIST_PAGE_SIZE = 25;
+let histActive = 'conversations';
+let histPages = { conversations: 0, memories: 0, 'action-items': 0, 'chat-sessions': 0, 'staged-tasks': 0 };
+let histTotals = {};
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+         + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+function histToggleTranscript(id) {
+  const el = document.getElementById(id);
+  const btn = document.getElementById('btn-' + id);
+  if (!el || !btn) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  btn.textContent = (open ? '▶' : '▼') + btn.textContent.slice(1);
+}
+
+function histToggleMsgs(id) {
+  const el = document.getElementById(id);
+  const btn = document.getElementById('btn-' + id);
+  if (!el || !btn) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  btn.textContent = (open ? '▶' : '▼') + btn.textContent.slice(1);
+}
+
+// Nav
+document.querySelectorAll('.hist-nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    histActive = btn.dataset.hist;
+    document.querySelectorAll('.hist-nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    histPages[histActive] = 0;
+    loadHistSection();
+  });
+});
+
+document.getElementById('btn-history').addEventListener('click', () => {
+  showView('history');
+  document.getElementById('hist-user-label').textContent = currentUserId ? '(' + currentUserId.slice(0, 12) + '…)' : '';
+  if (histActive) loadHistSection();
+});
+
+document.getElementById('btn-back-from-history').addEventListener('click', () => showView('users'));
+
+async function loadHistSection() {
+  const section = histActive;
+  const page = histPages[section] || 0;
+  const offset = page * HIST_PAGE_SIZE;
+  const main = document.getElementById('hist-main');
+  main.innerHTML = '<p class="hist-loading">Loading…</p>';
+
+  try {
+    let data;
+    if (section === 'conversations') {
+      data = await apiAuth('GET', `/v1/conversations?limit=${HIST_PAGE_SIZE}&offset=${offset}`);
+    } else if (section === 'memories') {
+      data = await apiAuth('GET', `/v3/memories?limit=${HIST_PAGE_SIZE}&offset=${offset}`);
+    } else if (section === 'action-items') {
+      const resp = await apiAuth('GET', `/v1/action-items`);
+      data = Array.isArray(resp) ? resp : (resp.items || []);
+    } else if (section === 'chat-sessions') {
+      data = await apiAuth('GET', `/v2/chat-sessions`);
+    } else if (section === 'staged-tasks') {
+      const resp = await apiAuth('GET', `/v1/staged-tasks`);
+      data = Array.isArray(resp) ? resp : (resp.items || []);
+    } else if (section === 'profile') {
+      data = await apiAuth('GET', `/v1/users/profile`);
+    }
+    renderHistSection(section, data, page);
+
+    // Update sidebar count badge
+    if (Array.isArray(data)) {
+      const btn = document.querySelector(`.hist-nav-item[data-hist="${section}"]`);
+      if (btn) {
+        let badge = btn.querySelector('.nav-count');
+        if (!badge) { badge = document.createElement('span'); badge.className = 'nav-count'; btn.appendChild(badge); }
+        badge.textContent = data.length < HIST_PAGE_SIZE ? (page * HIST_PAGE_SIZE + data.length) : (page * HIST_PAGE_SIZE + data.length) + '+';
+      }
+    }
+  } catch (err) {
+    main.innerHTML = `<p class="hist-error">Error: ${escHtml(err.detail || err.message || String(err))}</p>`;
+  }
+}
+
+function renderHistSection(section, data, page) {
+  const main = document.getElementById('hist-main');
+  main.innerHTML = '';
+
+  const bar = document.createElement('div');
+  bar.className = 'hist-section-bar';
+
+  const sectionNames = {
+    'conversations': 'Conversations', 'memories': 'Memories',
+    'action-items': 'Action Items', 'chat-sessions': 'Chat Sessions',
+    'staged-tasks': 'Staged Tasks', 'profile': 'User Profile',
+  };
+
+  bar.innerHTML = `<span class="hist-section-title">${sectionNames[section] || section}</span>`;
+
+  if (Array.isArray(data)) {
+    bar.innerHTML += `<span class="hist-count-pill">${data.length} items</span>`;
+  }
+
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'btn btn-secondary btn-sm';
+  refreshBtn.textContent = '↻ Refresh';
+  refreshBtn.onclick = () => { histPages[section] = page; loadHistSection(); };
+  bar.appendChild(refreshBtn);
+
+  const deleteAllSections = { 'conversations': 'Conversations', 'memories': 'Memories', 'action-items': 'Action Items' };
+  if (deleteAllSections[section] && Array.isArray(data) && data.length > 0) {
+    const delAllBtn = document.createElement('button');
+    delAllBtn.className = 'btn btn-danger btn-sm';
+    delAllBtn.textContent = 'Delete all ' + deleteAllSections[section].toLowerCase();
+    delAllBtn.onclick = () => openDeleteAllModal(section, deleteAllSections[section]);
+    bar.appendChild(delAllBtn);
+  }
+
+  main.appendChild(bar);
+
+  if (section === 'conversations') renderConversations(main, data, page);
+  else if (section === 'memories') renderMemories(main, data, page);
+  else if (section === 'action-items') renderActionItems(main, data);
+  else if (section === 'chat-sessions') renderChatSessions(main, data);
+  else if (section === 'staged-tasks') renderStagedTasks(main, data);
+  else if (section === 'profile') renderProfile(main, data);
+}
+
+// ── Conversations ─────────────────────────────────────────────────────────────
+
+function renderConversations(container, convs, page) {
+  if (!convs || convs.length === 0) {
+    const callout = document.createElement('div');
+    callout.className = 'hist-callout';
+    callout.innerHTML = `<strong>No conversations yet in the local database.</strong><br>
+      The Omi pin records audio and syncs to the <em>cloud backend</em> (api.omi.me),
+      not to this local backend. To record conversations here, use the desktop app's
+      audio recording feature (mic or screen capture) which streams to this local
+      WebSocket, or enable Private Cloud mode on your iOS/Android app and point it
+      at this backend URL.`;
+    container.appendChild(callout);
+    return;
+  }
+
+  convs.forEach(conv => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+
+    const title = conv.title || conv.structured?.title || 'Untitled Conversation';
+    const overview = conv.structured?.overview || '';
+    const category = conv.structured?.category || '';
+    const actionItems = conv.structured?.action_items || [];
+    const facts = conv.structured?.facts || [];
+    const segs = conv.transcript_segments || [];
+
+    const tsId = 'ts-' + conv.id;
+
+    // Card header
+    const hdr = document.createElement('div');
+    hdr.className = 'card-hdr';
+    hdr.innerHTML =
+      `<span class="card-title">${escHtml(title)}</span>` +
+      `<span class="status-badge status-${escHtml(conv.status)}">${escHtml(conv.status)}</span>` +
+      (category ? `<span class="cat-badge">${escHtml(category)}</span>` : '') +
+      `<span class="card-date">${fmtDate(conv.created_at)}</span>`;
+    card.appendChild(hdr);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'card-body';
+
+    if (overview) {
+      body.innerHTML += `<p class="card-summary">${escHtml(overview)}</p>`;
+    }
+    if (actionItems.length) {
+      body.innerHTML += `<div class="card-meta"><strong>Action Items</strong><ul class="mini-list">` +
+        actionItems.map(a => `<li>${escHtml(typeof a === 'string' ? a : (a.text || a.description || JSON.stringify(a)))}</li>`).join('') +
+        `</ul></div>`;
+    }
+    if (facts.length) {
+      body.innerHTML += `<div class="card-meta"><strong>Extracted Memories</strong><ul class="mini-list">` +
+        facts.map(f => `<li>${escHtml(typeof f === 'string' ? f : (f.content || JSON.stringify(f)))}</li>`).join('') +
+        `</ul></div>`;
+    }
+    card.appendChild(body);
+
+    // Transcript toggle
+    if (segs.length > 0) {
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'expand-btn';
+      expandBtn.id = 'btn-' + tsId;
+      expandBtn.textContent = `▶ Show transcript (${segs.length} segments)`;
+      expandBtn.onclick = () => histToggleTranscript(tsId);
+      card.appendChild(expandBtn);
+
+      const tsDiv = document.createElement('div');
+      tsDiv.className = 'transcript';
+      tsDiv.id = tsId;
+      tsDiv.style.display = 'none';
+      tsDiv.innerHTML = segs.map(s => {
+        const who = s.is_user ? 'Me' : (s.person_id ? 'Person' : 'Speaker');
+        return `<div class="seg"><span class="seg-who">${escHtml(who)}</span><span class="seg-text">${escHtml(s.text || '')}</span></div>`;
+      }).join('');
+      card.appendChild(tsDiv);
+    } else {
+      const noTs = document.createElement('p');
+      noTs.className = 'no-transcript';
+      noTs.textContent = 'No transcript segments recorded';
+      card.appendChild(noTs);
+    }
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
+    footer.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
+    footer.innerHTML = `<span>ID: <span class="mono">${escHtml(conv.id)}</span></span>`;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = () => openDeleteItemModal('conversations', conv.id, escHtml(title));
+    footer.appendChild(delBtn);
+    card.appendChild(footer);
+
+    container.appendChild(card);
+  });
+
+  renderHistPagination(container, 'conversations', convs.length, page);
+}
+
+// ── Memories ──────────────────────────────────────────────────────────────────
+
+function renderMemories(container, mems, page) {
+  if (!mems || mems.length === 0) {
+    container.innerHTML += '<p class="hist-empty">No memories saved yet.</p>';
+    return;
+  }
+
+  mems.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'card-hdr';
+    hdr.innerHTML =
+      `<span class="card-title" style="font-weight:400;">${escHtml(m.content)}</span>` +
+      `<span class="cat-badge">${escHtml(m.category || 'general')}</span>` +
+      (m.visibility && m.visibility !== 'private' ? `<span class="cat-badge" style="background:#fff0f0;color:#c0392b;">${escHtml(m.visibility)}</span>` : '') +
+      `<span class="card-date">${fmtDate(m.created_at)}</span>`;
+    card.appendChild(hdr);
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
+    footer.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
+    footer.innerHTML = `<span>ID: <span class="mono">${escHtml(m.id)}</span>` +
+      (m.conversation_id ? ` &nbsp;·&nbsp; Conv: <span class="mono">${escHtml(m.conversation_id.slice(0,8))}…</span>` : '') +
+      `</span>`;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = () => openDeleteItemModal('memories', m.id, m.content.slice(0, 60) + (m.content.length > 60 ? '…' : ''));
+    footer.appendChild(delBtn);
+    card.appendChild(footer);
+
+    container.appendChild(card);
+  });
+
+  renderHistPagination(container, 'memories', mems.length, page);
+}
+
+// ── Action Items ──────────────────────────────────────────────────────────────
+
+function renderActionItems(container, items) {
+  if (!items || items.length === 0) {
+    container.innerHTML += '<p class="hist-empty">No action items yet.</p>';
+    return;
+  }
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+    const doneClass = item.completed ? 'done-yes' : 'done-no';
+    const doneText = item.completed ? '✓ Done' : '○ Pending';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'card-hdr';
+    hdr.innerHTML =
+      `<span class="card-title" style="font-weight:400;${item.completed ? 'text-decoration:line-through;color:#aaa;' : ''}">${escHtml(item.description)}</span>` +
+      `<span class="${doneClass}">${doneText}</span>` +
+      (item.due_at ? `<span class="cat-badge">Due ${fmtDate(item.due_at)}</span>` : '') +
+      `<span class="card-date">${fmtDate(item.created_at)}</span>`;
+    card.appendChild(hdr);
+
+    const footer = document.createElement('div');
+    footer.className = 'card-footer';
+    footer.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
+    footer.innerHTML = `<span>ID: <span class="mono">${escHtml(item.id)}</span>` +
+      (item.conversation_id ? ` &nbsp;·&nbsp; Conv: <span class="mono">${escHtml(item.conversation_id.slice(0,8))}…</span>` : '') +
+      `</span>`;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = () => openDeleteItemModal('action-items', item.id, item.description.slice(0, 60) + (item.description.length > 60 ? '…' : ''));
+    footer.appendChild(delBtn);
+    card.appendChild(footer);
+
+    container.appendChild(card);
+  });
+}
+
+// ── Chat Sessions ─────────────────────────────────────────────────────────────
+
+function renderChatSessions(container, sessions) {
+  if (!sessions || sessions.length === 0) {
+    container.innerHTML += '<p class="hist-empty">No chat sessions yet.</p>';
+    return;
+  }
+
+  sessions.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+    const msgsId = 'msgs-' + s.id;
+
+    card.innerHTML =
+      `<div class="card-hdr">` +
+        `<span class="card-title">${escHtml(s.title || 'Untitled Chat')}</span>` +
+        (s.starred ? `<span class="cat-badge" style="background:#fff8e1;color:#f39c12;">★ Starred</span>` : '') +
+        `<span class="hist-count-pill">${s.message_count} msgs</span>` +
+        `<span class="card-date">${fmtDate(s.created_at)}</span>` +
+      `</div>` +
+      (s.preview ? `<div class="card-body"><p class="card-summary">${escHtml(s.preview)}</p></div>` : '') +
+      `<button class="expand-btn" id="btn-${msgsId}" onclick="histLoadSessionMsgs('${escHtml(s.id)}','${msgsId}')">` +
+        `▶ Load messages` +
+      `</button>` +
+      `<div class="msg-list" id="${msgsId}" style="display:none;"></div>` +
+      `<div class="card-footer">ID: <span class="mono">${escHtml(s.id)}</span></div>`;
+
+    container.appendChild(card);
+  });
+}
+
+async function histLoadSessionMsgs(sessionId, divId) {
+  const div = document.getElementById(divId);
+  const btn = document.getElementById('btn-' + divId);
+  if (!div) return;
+
+  if (div.style.display !== 'none') {
+    div.style.display = 'none';
+    if (btn) btn.textContent = '▶ Load messages';
+    return;
+  }
+
+  div.style.display = 'block';
+  div.innerHTML = '<p class="hist-loading" style="padding:12px;">Loading…</p>';
+  if (btn) btn.textContent = '▼ Hide messages';
+
+  try {
+    const msgs = await apiAuth('GET', `/v2/desktop/messages?session_id=${encodeURIComponent(sessionId)}&limit=100`);
+    if (!msgs || msgs.length === 0) {
+      div.innerHTML = '<p style="padding:12px;color:#aaa;font-size:12px;">No messages.</p>';
+      return;
+    }
+    div.innerHTML = msgs.map(m => {
+      const roleClass = m.role === 'assistant' ? 'ai' : '';
+      const roleLabel = m.role === 'assistant' ? 'Omi' : 'You';
+      return `<div class="msg-row">` +
+        `<span class="msg-role ${roleClass}">${escHtml(roleLabel)}:</span>` +
+        `<span class="msg-text">${escHtml(m.text || m.content || '')}</span>` +
+        `</div>`;
+    }).join('');
+  } catch (err) {
+    div.innerHTML = `<p class="hist-error" style="padding:12px;">Error: ${escHtml(err.detail || String(err))}</p>`;
+  }
+}
+
+// ── Staged Tasks ──────────────────────────────────────────────────────────────
+
+function renderStagedTasks(container, tasks) {
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML += '<p class="hist-empty">No staged tasks. These are extracted from conversations before being promoted to action items.</p>';
+    return;
+  }
+
+  tasks.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'hist-card';
+    const scoreLabel = t.score != null ? `Score: ${(t.score * 100).toFixed(0)}%` : 'No score';
+
+    card.innerHTML =
+      `<div class="card-hdr">` +
+        `<span class="card-title" style="font-weight:400;">${escHtml(t.description)}</span>` +
+        `<span class="cat-badge">${escHtml(scoreLabel)}</span>` +
+        (t.completed ? `<span class="done-yes">✓ Promoted</span>` : '') +
+        `<span class="card-date">${fmtDate(t.created_at)}</span>` +
+      `</div>` +
+      `<div class="card-footer">ID: <span class="mono">${escHtml(t.id)}</span>` +
+        (t.conversation_id ? ` &nbsp;·&nbsp; Conv: <span class="mono">${escHtml(t.conversation_id.slice(0,8))}…</span>` : '') +
+      `</div>`;
+
+    container.appendChild(card);
+  });
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+function renderProfile(container, profile) {
+  if (!profile) {
+    container.innerHTML += '<p class="hist-error">Could not load profile.</p>';
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'profile-card';
+
+  const fields = [
+    ['User ID', profile.uid],
+    ['Email', profile.email],
+    ['Display Name', profile.name],
+    ['Time Zone', profile.time_zone],
+    ['Account Created', profile.created_at ? fmtDate(profile.created_at) : null],
+    ['Motivation', profile.motivation],
+    ['Use Case', profile.use_case],
+    ['Job Title', profile.job],
+    ['Company', profile.company],
+  ];
+
+  card.innerHTML = fields.map(([key, val]) =>
+    `<div class="profile-row">` +
+      `<span class="profile-key">${escHtml(key)}</span>` +
+      `<span class="profile-val${val ? '' : ' empty'}">${val ? escHtml(String(val)) : 'Not set'}</span>` +
+    `</div>`
+  ).join('');
+
+  container.appendChild(card);
+
+  // Also show raw settings as a collapsible
+  const rawId = 'raw-profile';
+  const rawBtn = document.createElement('button');
+  rawBtn.className = 'expand-btn';
+  rawBtn.id = 'btn-' + rawId;
+  rawBtn.style.cssText = 'margin-top:12px;border-radius:6px;';
+  rawBtn.textContent = '▶ Show raw assistant settings';
+  rawBtn.onclick = async () => {
+    const div = document.getElementById(rawId);
+    if (!div) return;
+    if (div.style.display !== 'none') {
+      div.style.display = 'none';
+      rawBtn.textContent = '▶ Show raw assistant settings';
+      return;
+    }
+    div.style.display = 'block';
+    rawBtn.textContent = '▼ Hide raw assistant settings';
+    if (!div.dataset.loaded) {
+      div.textContent = 'Loading…';
+      try {
+        const settings = await apiAuth('GET', '/v1/users/assistant-settings');
+        div.textContent = JSON.stringify(settings, null, 2);
+        div.dataset.loaded = '1';
+      } catch (e) {
+        div.textContent = 'Error: ' + (e.detail || String(e));
+      }
+    }
+  };
+  container.appendChild(rawBtn);
+
+  const rawDiv = document.createElement('pre');
+  rawDiv.id = rawId;
+  rawDiv.style.cssText = 'display:none;margin-top:0;background:#1e2530;color:#d4d4d4;border-radius:0 0 6px 6px;padding:14px;font-size:12px;overflow-x:auto;max-height:400px;overflow-y:auto;';
+  container.appendChild(rawDiv);
+}
+
+// ── Delete single item ────────────────────────────────────────────────────────
+
+const DELETE_ITEM_ENDPOINTS = {
+  'conversations': id => `/v1/conversations/${id}`,
+  'memories':      id => `/v3/memories/${id}`,
+  'action-items':  id => `/v1/action-items/${id}`,
+};
+
+let _deleteItemSection = null;
+let _deleteItemId = null;
+
+function openDeleteItemModal(section, itemId, label) {
+  _deleteItemSection = section;
+  _deleteItemId = itemId;
+  clearModalNotif('modal-delete-item-notif');
+  document.getElementById('delete-item-detail').innerHTML =
+    `Permanently delete: <strong>${escHtml(label)}</strong>?<br><br>This cannot be undone.`;
+  openModal('delete-item');
+}
+
+document.getElementById('btn-delete-item-cancel').addEventListener('click', () => closeModal('delete-item'));
+
+document.getElementById('btn-delete-item-confirm').addEventListener('click', async () => {
+  const section = _deleteItemSection;
+  const itemId  = _deleteItemId;
+  const endpointFn = DELETE_ITEM_ENDPOINTS[section];
+  if (!endpointFn || !itemId) return;
+
+  const btn = document.getElementById('btn-delete-item-confirm');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+
+  try {
+    await apiAuth('DELETE', endpointFn(itemId));
+    closeModal('delete-item');
+    showNotification('Item deleted.', 'success', 2500);
+    loadHistSection();
+  } catch (err) {
+    if (err.status !== 401) showModalNotif('modal-delete-item-notif', err.detail || 'Delete failed.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Delete';
+  }
+});
+
+// ── Delete all items in a section ─────────────────────────────────────────────
+
+const DELETE_ALL_ENDPOINTS = {
+  'conversations': '/v1/conversations',
+  'memories':      '/v3/memories',
+  'action-items':  '/v1/action-items',
+};
+
+let _deleteAllSection = null;
+let _deleteAllWord    = null;
+
+function openDeleteAllModal(section, label) {
+  _deleteAllSection = section;
+  _deleteAllWord = label.toUpperCase();
+  clearModalNotif('modal-delete-all-notif');
+  document.getElementById('delete-all-modal-title').textContent = 'Delete all ' + label.toLowerCase();
+  document.getElementById('delete-all-detail').innerHTML =
+    `<strong>This will permanently delete every ${label.toLowerCase().replace(/s$/, '')} in this account.</strong><br><br>` +
+    `This action is irreversible. All ${label.toLowerCase()} will be gone immediately.`;
+  document.getElementById('delete-all-confirm-word').textContent = _deleteAllWord;
+  document.getElementById('delete-all-confirm-input').value = '';
+  document.getElementById('btn-delete-all-confirm').disabled = true;
+  openModal('delete-all');
+  setTimeout(() => document.getElementById('delete-all-confirm-input').focus(), 80);
+}
+
+document.getElementById('delete-all-confirm-input').addEventListener('input', function() {
+  const match = this.value.trim() === _deleteAllWord;
+  document.getElementById('btn-delete-all-confirm').disabled = !match;
+});
+
+document.getElementById('btn-delete-all-cancel').addEventListener('click', () => {
+  closeModal('delete-all');
+});
+
+document.getElementById('btn-delete-all-confirm').addEventListener('click', async () => {
+  const section = _deleteAllSection;
+  const endpoint = DELETE_ALL_ENDPOINTS[section];
+  if (!endpoint) return;
+
+  const btn = document.getElementById('btn-delete-all-confirm');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+
+  try {
+    const result = await apiAuth('DELETE', endpoint);
+    closeModal('delete-all');
+    showNotification(`Deleted ${result.deleted ?? 'all'} item(s).`, 'success', 3000);
+    histPages[section] = 0;
+    loadHistSection();
+  } catch (err) {
+    if (err.status !== 401) showModalNotif('modal-delete-all-notif', err.detail || 'Delete failed.');
+    btn.disabled = false; btn.textContent = 'Delete All';
+  }
+});
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+
+function renderHistPagination(container, section, count, page) {
+  if (page === 0 && count < HIST_PAGE_SIZE) return;
+  const div = document.createElement('div');
+  div.className = 'hist-pagination';
+  div.innerHTML = `<span class="page-info">Page ${page + 1} &nbsp;·&nbsp; ${count} items loaded</span>`;
+
+  if (page > 0) {
+    const prev = document.createElement('button');
+    prev.className = 'btn btn-secondary btn-sm';
+    prev.textContent = '← Prev';
+    prev.onclick = () => { histPages[section]--; loadHistSection(); };
+    div.appendChild(prev);
+  }
+  if (count === HIST_PAGE_SIZE) {
+    const next = document.createElement('button');
+    next.className = 'btn btn-secondary btn-sm';
+    next.textContent = 'Next →';
+    next.onclick = () => { histPages[section]++; loadHistSection(); };
+    div.appendChild(next);
+  }
+  container.appendChild(div);
+}
+</script>
+</body>
+</html>

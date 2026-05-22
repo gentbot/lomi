@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
+import 'package:omi/env/env.dart'; // ── LOCAL ONLY ──
+import 'package:omi/local/pages/local_sign_in_page.dart'; // ── LOCAL ONLY ──
 import 'package:omi/providers/auth_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -131,6 +133,40 @@ class _AuthComponentState extends State<AuthComponent> {
                         ),
                       ),
                     ),
+
+                    // ── LOCAL ONLY — email/password sign-in for local backend ──
+                    if (Env.localAuthEnabled) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LocalSignInPage(onSignedIn: widget.onSignIn),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white30),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                          ),
+                          child: const Text(
+                            'Sign in with email  (local)',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: 'Manrope',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    // ── END LOCAL ONLY ──
 
                     const SizedBox(height: 24),
 

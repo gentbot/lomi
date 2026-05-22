@@ -32,6 +32,10 @@ class _TestEnvFields implements EnvFields {
   bool? get useWebAuth => false;
   @override
   bool? get useAuthCustomToken => false;
+  @override
+  String? get posthogApiKey => null;
+  @override
+  bool? get localAuthEnabled => false; // ── LOCAL ONLY ──
 }
 
 void main() {
