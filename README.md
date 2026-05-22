@@ -66,6 +66,47 @@ cd app && bash setup.sh ios    # or: bash setup.sh android
 
 </details>
 
+---
+
+## Running Locally — No Cloud Required
+
+This fork runs entirely on your own machine: no Firebase, no Deepgram, no OpenAI, no data leaving your network.
+
+| Upstream service | Local replacement |
+|-----------------|------------------|
+| Firebase Auth | Local JWT (`AUTH_PROVIDER=local`) |
+| Firestore | SQLite (`DB_PROVIDER=sqlite`) |
+| Deepgram STT | faster-whisper (`STT_PROVIDER=local`) |
+| OpenAI LLM | Ollama (`LLM_PROVIDER=ollama`) |
+| Pinecone | Qdrant in Docker (`VECTOR_DB_PROVIDER=qdrant`) |
+
+**Prerequisites:** macOS, [Docker Desktop](https://www.docker.com/products/docker-desktop/), [Ollama](https://ollama.com), Homebrew + conda (Miniforge) — the setup guide installs the last two.
+
+**Quick start:**
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/gentbot/lomi.git && cd lomi
+
+cp backend/.env.local.example backend/.env
+# Edit backend/.env — change LOCAL_JWT_SECRET and ENCRYPTION_SECRET to unique values
+# Generate: python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# 2. Pull a model
+ollama pull qwen3:0.6b
+
+# 3. Start everything
+cd backend && bash start_local.sh
+```
+
+The API starts on `http://localhost:8088`. Browse to `/docs` for the Swagger UI.
+
+**First time on a new machine** — follow the full guide: [`docs-local/SETUP_FROM_SCRATCH.md`](docs-local/SETUP_FROM_SCRATCH.md). Covers installing all prerequisites from scratch (~30–60 min).
+
+**Day-to-day operations, connecting clients, troubleshooting:** [`README-LOCAL.md`](README-LOCAL.md)
+
+---
+
 <p align="center">
   <a href="https://macos.omi.me"><img src="docs/assets/readme/download-macos-badge.png" alt="Download for macOS" height="50"></a>
   <a href="https://apps.apple.com/us/app/friend-ai-wearable/id6502156163"><img src="docs/assets/readme/download-appstore-badge.png" alt="Download on the App Store" height="50"></a>
@@ -120,6 +161,13 @@ cd app && bash setup.sh ios    # or: bash setup.sh android
 </details>
 
 ## Documentation
+
+### Local Mode (No Cloud)
+- [Full Setup Guide](docs-local/SETUP_FROM_SCRATCH.md) — install everything from scratch on a new machine
+- [Operations Runbook](docs-local/RUNBOOK.md) — clients, pin bridge, day-to-day ops
+- [What Works Locally](docs-local/LOCAL_CAPABILITIES.md) — feature parity vs cloud
+- [Upstream Sync Guide](docs-local/FORK_AND_MERGE_GUIDE.md) — keeping the fork current with BasedHardware/omi
+- [Environment Variables](backend/.env.reference) — every config option documented
 
 ### Getting Started
 - [Introduction](https://docs.omi.me/)
