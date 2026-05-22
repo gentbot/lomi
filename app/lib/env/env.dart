@@ -75,6 +75,9 @@ abstract class Env {
   static bool get useWebAuth => _instance.useWebAuth ?? false;
 
   static bool get useAuthCustomToken => _instance.useAuthCustomToken ?? false;
+
+  // ── LOCAL ONLY ──
+  static bool get localAuthEnabled => _instance.localAuthEnabled ?? false;
 }
 
 abstract class EnvFields {
@@ -103,4 +106,7 @@ abstract class EnvFields {
   bool? get useAuthCustomToken;
 
   String? get stagingApiUrl;
+
+  // ── LOCAL ONLY ──
+  bool? get localAuthEnabled;
 }
