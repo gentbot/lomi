@@ -198,9 +198,6 @@ The API starts on `http://localhost:8088`. Browse to `/docs` for the Swagger UI.
 - [Audio Streaming Pipeline](https://docs.omi.me/doc/developer/backend/listen_pusher_pipeline)
 - [BLE Protocol](https://docs.omi.me/doc/developer/Protocol)
 
-## Omi Hardware
-![Omi](https://github.com/user-attachments/assets/7a658366-9e02-4057-bde5-a510e1f0217a)
-
 Open-source AI wearables that pair with the mobile app for 24h+ continuous capture.
 
 <p align="center">
